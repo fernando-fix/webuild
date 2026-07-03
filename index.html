@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Web Builder - Code Engine</title>
+    <style>
+        :root {
+            --bg-primary: #1e1e24;
+            --bg-secondary: #2a2a35;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --text-color: #f3f4f6;
+            --border-color: #3f3f46;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: #fafafa;
+            color: #333;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- BARRA DO TOPO --- */
+        header {
+            height: 60px;
+            background-color: var(--bg-primary);
+            color: var(--text-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .tabs button {
+            background: transparent;
+            border: none;
+            color: #a1a1aa;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tabs button.active {
+            color: var(--text-color);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .header-title {
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* --- ÁREA PRINCIPAL --- */
+        main {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 60px);
+        }
+
+        .view-pane {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .view-pane.active {
+            display: block;
+        }
+
+        /* Canvas */
+        #canvas-pane {
+            height: 100%;
+            width: 100%;
+        }
+
+        #canvas {
+            overflow-y: auto;
+            height: 100%;
+            width: 100%;
+            position: relative;
+            background-size: 20px 20px;
+            background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px), linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+        }
+
+        .spacing-label {
+            position: absolute;
+            font-size: 10px;
+            font-weight: bold;
+            font-family: monospace;
+            color: #fff;
+            text-align: center;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        body.mode-preview #canvas {
+            background-image: none;
+            background-color: #ffffff;
+        }
+
+        /* Aba Código */
+        #code-pane {
+            background-color: #151515;
+            padding: 20px;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #code-pane.active {
+            display: flex;
+        }
+
+        .code-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        #code-output {
+            width: 100%;
+            flex: 1;
+            background-color: #1e1e1e;
+            color: #a3e635;
+            font-family: monospace;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            resize: none;
+            outline: none;
+        }
+
+        /* Aba Biblioteca Split Layout */
+        #library-pane {
+            background-color: #f3f4f6;
+            height: 100%;
+            width: 100%;
+        }
+
+        .library-container {
+            display: flex;
+            gap: 25px;
+            height: 100%;
+            padding: 25px;
+            overflow: hidden;
+        }
+
+        .library-sidebar {
+            width: 360px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        }
+
+        .library-content {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .library-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .library-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 10px;
+        }
+
+        .library-preview-box {
+            border: 1px dashed #cbd5e1;
+            padding: 15px;
+            border-radius: 6px;
+            background: #fafafa;
+            min-height: 80px;
+            overflow: hidden;
+        }
+
+        /* Botões */
+        .btn-action {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            user-select: none;
+        }
+
+        .btn-action:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* --- MENUS FLUTUANTES --- */
+        .floating-menu {
+            position: absolute;
+            background-color: var(--bg-secondary);
+            color: var(--text-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-header {
+            padding: 12px 16px;
+            background-color: var(--bg-primary);
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: move;
+            user-select: none;
+        }
+
+        #menu-components {
+            top: 20px;
+            right: 20px;
+            width: 290px;
+            max-height: 80vh;
+            display: flex;
+        }
+
+        .components-list {
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .comp-group-title {
+            font-size: 11px;
+            color: #a1a1aa;
+            margin: 10px 0 2px 2px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #3f3f46;
+            padding-bottom: 2px;
+        }
+
+        .comp-item {
+            background-color: var(--bg-primary);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .comp-item:hover {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        #menu-editor {
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            display: none;
+        }
+
+        .editor-body {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: #a1a1aa;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        /* Edição no Canvas */
+        body.mode-edit .editable-element {
+            position: relative;
+            outline: 1px dashed #3b82f6;
+            outline-offset: 2px;
+            cursor: pointer;
+        }
+
+        body.mode-edit .editable-element:hover {
+            outline: 2px solid var(--accent);
+        }
+
+        body.mode-edit .editable-element.selected {
+            outline: 2px dashed #10b981 !important;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
+
+        body.mode-edit .c-container.selected {
+            outline: 2px dashed #eab308 !important;
+        }
+
+        /* CSS Padrão dos Elementos */
+        .c-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #111827;
+        }
+
+        .c-paragraph {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #4b5563;
+            margin-bottom: 10px;
+        }
+
+        .c-button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .c-image {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+        }
+
+        .c-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 10px;
+        }
+
+        .c-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .c-alert {
+            padding: 15px;
+            background-color: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .c-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #e0e7ff;
+            color: #4338ca;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .c-list {
+            padding-left: 20px;
+            margin-bottom: 5px;
+        }
+
+        .c-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            background: #f3f4f6;
+            border: 1px dashed #cbd5e1;
+            min-height: 100px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+        }
+
+        body.mode-preview .c-container {
+            border: none;
+            background: transparent;
+            padding: 0;
+        }
+
+        /* --- EDITOR TABS --- */
+        .editor-tabs-bar {
+            display: flex;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .editor-tabs-bar button {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #a1a1aa;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .editor-tabs-bar button.active {
+            color: var(--text-color);
+            border-bottom-color: var(--accent);
+            background: var(--bg-secondary);
+        }
+
+        .editor-tab-pane {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .editor-tab-pane.active {
+            display: flex;
+        }
+
+        /* --- ATRIBUTOS TAB --- */
+        .attr-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-secondary);
+            padding: 5px 8px;
+            border-radius: 4px;
+        }
+
+        .attr-row .attr-key {
+            font-size: 11px;
+            font-weight: 600;
+            color: #93c5fd;
+            min-width: 55px;
+            max-width: 70px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
+        .attr-row input,
+        .attr-row select {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            outline: none;
+            font-family: monospace;
+        }
+
+        .attr-row .btn-remove-attr {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .btn-add-attr {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            width: fit-content;
+        }
+
+        .btn-add-attr:hover {
+            background: var(--accent-hover);
+        }
+
+        /* --- PROJECTS TAB --- */
+        .projects-section {
+            margin-bottom: 10px;
+        }
+
+        .projects-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #a1a1aa;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .project-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .project-item:hover {
+            border-color: var(--accent);
+        }
+
+        .project-item.active {
+            border-color: var(--accent);
+            background: rgba(79, 70, 229, 0.15);
+        }
+
+        .project-item .project-icon {
+            font-size: 16px;
+        }
+
+        .project-item .project-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .project-item .project-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-color);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .project-item .project-date {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .project-item .btn-delete-project {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 4px;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+
+        .project-item .btn-delete-project:hover {
+            opacity: 1;
+        }
+
+        .projects-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .projects-actions-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .projects-actions-row button {
+            flex: 1;
+        }
+
+        /* Viewport buttons */
+        .vp-btn {
+            background: #2a2a36;
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all .2s;
+            font-family: inherit;
+        }
+        .vp-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+        .vp-btn:hover { background: #3f3f4a; }
+        .vp-btn.active:hover { background: #6d28d9; }
+        .vp-btn-remove {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 0 3px;
+            line-height: 1;
+            opacity: 0;
+            transition: opacity .2s;
+        }
+        .vp-btn-wrap:hover .vp-btn-remove { opacity: 1; }
+
+        /* CSS sub-tabs */
+        .css-sub-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #3f3f46;
+        }
+        .css-sub-tab {
+            background: none;
+            border: none;
+            color: #666;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all .2s;
+        }
+        .css-sub-tab.active {
+            color: #a78bfa;
+            border-bottom-color: #a78bfa;
+        }
+        .css-sub-tab:hover { color: #ccc; }
+
+        /* Drag feedback */
+        .c-container.drag-over {
+            outline: 2px dashed #10b981 !important;
+            outline-offset: 2px;
+            background: rgba(16, 185, 129, 0.1) !important;
+        }
+
+        .editable-element.dragging {
+            opacity: 0.4;
+        }
+
+        /* --- PROJECTS PANE --- */
+        #projects-pane {
+            background-color: #151515;
+            padding: 20px;
+            display: none;
+        }
+
+        #projects-pane.active {
+            display: block;
+        }
+    </style>
+    <style id="wb-custom-css"></style>
+</head>
+
+<body class="mode-edit">
+
+    <header>
+        <div class="tabs">
+            <button id="btn-edit" class="active" onclick="switchTab('edit')">Editar</button>
+            <button id="btn-view" onclick="switchTab('view')">Visualizar</button>
+            <button id="btn-projects" onclick="switchTab('projects')">Projetos</button>
+            <button id="btn-library" onclick="switchTab('library')">Biblioteca</button>
+            <button id="btn-code" onclick="switchTab('code')">Código</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+            <div id="vp-presets" style="display:flex;align-items:center;gap:4px;"></div>
+            <input type="number" id="vp-custom-input" placeholder="px" min="200" max="2000"
+                style="width:55px;padding:3px 5px;font-size:11px;background:#2a2a36;color:#fff;border:1px solid #555;border-radius:4px;outline:none;text-align:center;"
+                onchange="setViewport(this.value+'px')" onkeypress="if(event.key==='Enter'){setViewport(this.value+'px');this.blur();}">
+            <button onclick="saveCustomPreset()" title="Salvar como preset"
+                style="background:none;border:1px solid #555;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:12px;color:#a78bfa;">💾</button>
+        </div>
+        <div class="header-title" id="target-indicator">Destino: Raiz do Canvas</div>
+    </header>
+
+    <main>
+        <div id="canvas-pane" class="view-pane active">
+            <div id="canvas"></div>
+        </div>
+
+        <div id="code-pane" class="view-pane">
+            <div class="code-actions">
+                <button class="btn-action" onclick="copyCode()">Copiar Código</button>
+                <button class="btn-action" onclick="downloadCode()">Baixar HTML</button>
+            </div>
+            <textarea id="code-output" readonly></textarea>
+        </div>
+
+        <div id="projects-pane" class="view-pane">
+            <div style="max-width:600px;margin:30px auto;padding:20px;background:#1e1e24;border-radius:8px;border:1px solid var(--border-color);">
+                <h2 style="color:var(--text-color);margin-bottom:15px;font-size:18px;">Gerenciar Projetos</h2>
+
+                <div class="projects-actions">
+                    <div class="projects-actions-row">
+                        <button class="btn-action" style="background:#059669;" onclick="saveProject()">💾 Salvar Projeto</button>
+                        <button class="btn-action" style="background:#2563eb;" onclick="newProject()">📂 Novo Projeto</button>
+                    </div>
+                    <div class="projects-actions-row">
+                        <button class="btn-action" style="background:#7c3aed;" onclick="exportProject()">📥 Exportar Projeto</button>
+                        <button class="btn-action" style="background:#7c3aed;" onclick="importProject()">📤 Importar Projeto</button>
+                    </div>
+                    <div class="projects-actions-row">
+                        <button class="btn-action" style="background:#0891b2;" onclick="exportLibrary()">📥 Exportar Biblioteca</button>
+                        <button class="btn-action" style="background:#0891b2;" onclick="importLibrary()">📤 Importar Biblioteca</button>
+                    </div>
+                </div>
+
+                <div class="projects-section" style="margin-top:15px;">
+                    <div class="projects-section-title">Meus Projetos</div>
+                    <div id="projects-list"></div>
+                </div>
+            </div>
+
+            <input type="file" id="import-project-input" accept=".json" style="display:none;">
+            <input type="file" id="import-library-input" accept=".json" style="display:none;">
+        </div>
+
+        <div id="library-pane" class="view-pane">
+            <div class="library-container">
+                <div class="library-sidebar">
+                    <h3 style="color:#333;">Injetar Novo Código</h3>
+                    <div class="form-group">
+                        <label style="color:#666;">Nome do Componente</label>
+                        <input type="text" id="lib-input-name" placeholder="Ex: Botão Neon Gradiente"
+                            style="background:#f3f4f6; color:#333; border: 1px solid #ccc; padding:8px;">
+                    </div>
+                    <div class="form-group" style="flex:1; display:flex; flex-direction:column;">
+                        <label style="color:#666;">Código HTML Puro / Style Inline</label>
+                        <textarea id="lib-input-code"
+                            placeholder="<button class='editable-element' style='background: linear-gradient(to right, red, blue); color: white; padding: 15px;'>Meu Botão</button>"
+                            style="background:#1e1e1e; color:#a3e635; font-family:monospace; padding:10px; flex:1; resize:none; border:none;"></textarea>
+                    </div>
+                    <button class="btn-action" onclick="addCustomCodeToLibrary()" style="width:100%;">Registrar na
+                        Biblioteca</button>
+                </div>
+                <div class="library-content">
+                    <h2 style="color:#333;">Componentes Registrados</h2>
+                    <p style="color: #666; font-size: 14px; margin-top: -10px;">Visualize, exclua ou escolha injetar o
+                        código estruturado diretamente de volta ao canvas.</p>
+                    <div class="library-grid" id="library-grid-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="menu-components" class="floating-menu">
+            <div class="menu-header">Componentes</div>
+            <div style="padding: 10px 10px 2px 10px;">
+                <input type="text" id="component-search" placeholder="🔍 Filtrar lista..."
+                    oninput="renderComponentMenu()"
+                    style="width:100%; background: var(--bg-primary); border: 1px solid var(--border-color); color: white; padding: 6px 10px; border-radius: 4px; font-size: 13px; outline: none;">
+            </div>
+            <div class="components-list" id="dynamic-components-list"></div>
+        </div>
+
+        <div id="menu-editor" class="floating-menu">
+            <div class="menu-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>Propriedades</span>
+                <button id="toggle-spacing-btn" onclick="toggleSpacingGuides()" title="Mostrar/ocultar guias de espaçamento"
+                    style="background:none;border:1px solid #555;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:13px;line-height:1;opacity:1;transition:opacity .2s;">📐</button>
+            </div>
+            <div class="editor-tabs-bar">
+                <button class="editor-tab-btn active" data-tab="attributes">Atributos</button>
+                <button class="editor-tab-btn" data-tab="css">CSS</button>
+            </div>
+            <div class="editor-body">
+                <div id="editor-tab-attributes" class="editor-tab-pane active"></div>
+                <div id="editor-tab-css" class="editor-tab-pane"></div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <button class="btn-action" style="background:#059669;"
+                        onclick="duplicateElement()">Duplicar</button>
+                    <button class="btn-action" style="background:#d97706;" onclick="saveToLibraryFromCanvas()">Salvar Bloco</button>
+                    <button class="btn-action" style="background:#2563eb;" onclick="moveElement(-1)">▲ Subir</button>
+                    <button class="btn-action" style="background:#2563eb;" onclick="moveElement(1)">▼ Descer</button>
+                </div>
+                <button class="btn-action" style="background:#ef4444; width:100%;"
+                    onclick="deleteElement()">Remover</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedElement = null, activeContainer = null, currentTab = 'edit', lastEditorTab = 'attributes', spacingGuidesVisible = true, currentViewport = '100%', wbIdCounter = 0;
+
+        const templates = {
+            container: `<div class="editable-element c-container" data-comp="container"></div>`,
+            title: `<h1 class="editable-element c-title" data-comp="title">Título Customizado</h1>`,
+            paragraph: `<p class="editable-element c-paragraph" data-comp="paragraph">Texto editável livre para parágrafos.</p>`,
+            button: `<button class="editable-element c-button" data-comp="button">Botão</button>`,
+            image: `<img src="https://picsum.photos/id/237/400/250" class="editable-element c-image" data-comp="image" alt="Imagem">`,
+            card: `<div class="editable-element c-card" data-comp="card"><h3>Card Headline</h3><p>Espaço interno do card.</p></div>`,
+            input: `<input type="text" placeholder="Digite aqui..." class="editable-element c-input" data-comp="input">`,
+            alert: `<div class="editable-element c-alert" data-comp="alert">Aviso importante gerado pelo Builder!</div>`,
+            badge: `<span class="editable-element c-badge" data-comp="badge">Tag</span>`,
+            list: `<li class="editable-element c-list" data-comp="list">Item da lista</li>`
+        };
+
+        const basicComponentsRegistry = [
+            { type: 'container', name: '📦 Container Box (Div)', category: 'Estrutura' },
+            { type: 'title', name: '# Título (H1)', category: 'Elementos Básicos' },
+            { type: 'paragraph', name: '¶ Parágrafo', category: 'Elementos Básicos' },
+            { type: 'button', name: '🔘 Botão', category: 'Elementos Básicos' },
+            { type: 'image', name: '🖼️ Imagem', category: 'Elementos Básicos' },
+            { type: 'card', name: '🃏 Card Box', category: 'Elementos Básicos' },
+            { type: 'input', name: '📥 Campo Input', category: 'Elementos Básicos' },
+            { type: 'alert', name: '⚠️ Alerta', category: 'Elementos Básicos' },
+            { type: 'badge', name: '🏷️ Badge Tag', category: 'Elementos Básicos' },
+            { type: 'list', name: '🔹 Item Lista', category: 'Elementos Básicos' }
+        ];
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${tab}`).classList.add('active');
+
+            document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active'));
+            document.body.classList.remove('mode-edit', 'mode-preview');
+            document.getElementById('menu-components').style.display = 'none';
+            document.getElementById('menu-editor').style.display = 'none';
+
+            if (tab === 'edit') {
+                document.body.classList.add('mode-edit');
+                document.getElementById('canvas-pane').classList.add('active');
+                document.getElementById('menu-components').style.display = 'flex';
+                renderComponentMenu();
+                if (selectedElement) {
+                    openEditor(selectedElement);
+                }
+            } else if (tab === 'view') {
+                document.body.classList.add('mode-preview');
+                document.getElementById('canvas-pane').classList.add('active');
+                clearSelection();
+            } else if (tab === 'code') {
+                document.getElementById('code-pane').classList.add('active');
+                generateCode();
+            } else if (tab === 'library') {
+                document.getElementById('library-pane').classList.add('active');
+                renderLibrary();
+                clearSelection();
+            } else if (tab === 'projects') {
+                document.getElementById('projects-pane').classList.add('active');
+                clearSelection();
+                renderProjectsList();
+            }
+        }
+
+        function assignWbId(el) {
+            if (!el.getAttribute('data-wb-id')) {
+                wbIdCounter++;
+                el.setAttribute('data-wb-id', wbIdCounter);
+            }
+        }
+
+        function insertComponent(type, customHTML = null) {
+            const target = activeContainer ? activeContainer : document.getElementById('canvas');
+            saveState();
+            const tempDiv = document.createElement('div');
+
+            // Injeta o HTML customizado da biblioteca ou o nativo estrutural estável
+            tempDiv.innerHTML = customHTML ? customHTML : templates[type];
+            const newElement = tempDiv.firstElementChild;
+
+            if (!newElement) return;
+
+            assignWbId(newElement);
+            target.appendChild(newElement);
+            bindElementEvents(newElement);
+
+            // Varre recursivamente e vincula escutas caso contenha nós aninhados
+            newElement.querySelectorAll('.editable-element').forEach(child => { assignWbId(child); bindElementEvents(child); });
+            saveState();
+            newElement.click();
+        }
+
+        function bindElementEvents(element) {
+            element.addEventListener('click', (e) => {
+                if (currentTab !== 'edit') return;
+                e.stopPropagation();
+                clearSelection();
+                selectedElement = element;
+                element.classList.add('selected');
+
+                if (element.getAttribute('data-comp') === 'container') {
+                    activeContainer = element;
+                    document.getElementById('target-indicator').innerText = "Destino: Dentro do Container";
+                    document.getElementById('target-indicator').style.color = "#eab308";
+                } else {
+                    const parentContainer = element.parentElement.closest('.c-container');
+                    activeContainer = parentContainer ? parentContainer : null;
+                    document.getElementById('target-indicator').innerText = activeContainer ? "Destino: Dentro do Container" : "Destino: Raiz do Canvas";
+                    if (activeContainer) document.getElementById('target-indicator').style.color = "#eab308";
+                }
+                openEditor(element);
+            });
+        }
+
+        function clearSelection() {
+            if (selectedElement) selectedElement.classList.remove('selected');
+            selectedElement = null; activeContainer = null;
+            document.getElementById('menu-editor').style.display = 'none';
+            document.getElementById('target-indicator').innerText = "Destino: Raiz do Canvas";
+            document.getElementById('target-indicator').style.color = "";
+            hideSpacingGuides();
+        }
+        document.getElementById('canvas').addEventListener('click', () => clearSelection());
+
+        function getOffsetTo(el, ancestor) {
+            let top = 0, left = 0;
+            let current = el;
+            while (current && current !== ancestor) {
+                top += current.offsetTop;
+                left += current.offsetLeft;
+                current = current.offsetParent;
+            }
+            return { top, left };
+        }
+
+        function toggleSpacingGuides() {
+            spacingGuidesVisible = !spacingGuidesVisible;
+            const btn = document.getElementById('toggle-spacing-btn');
+            btn.style.opacity = spacingGuidesVisible ? '1' : '0.4';
+            if (spacingGuidesVisible && selectedElement) {
+                showSpacingGuides(selectedElement);
+            } else {
+                hideSpacingGuides();
+            }
+        }
+
+        function showSpacingGuides(el) {
+            hideSpacingGuides();
+            if (!spacingGuidesVisible) return;
+            const canvas = document.getElementById('canvas');
+            const pos = getOffsetTo(el, canvas);
+            const style = getComputedStyle(el);
+            const sides = ['top', 'right', 'bottom', 'left'];
+
+            const margin = {};
+            const padding = {};
+            sides.forEach(s => {
+                margin[s] = parseFloat(style['margin' + s.charAt(0).toUpperCase() + s.slice(1)]);
+                padding[s] = parseFloat(style['padding' + s.charAt(0).toUpperCase() + s.slice(1)]);
+            });
+
+            const w = el.offsetWidth;
+            const h = el.offsetHeight;
+            const container = document.createElement('div');
+            container.id = 'spacing-guides';
+            container.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:40;';
+
+            function createBar(cssText, label) {
+                const div = document.createElement('div');
+                div.style.cssText = cssText;
+                if (label) {
+                    const lbl = document.createElement('div');
+                    lbl.className = 'spacing-label';
+                    lbl.textContent = label;
+                    lbl.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;font-family:monospace;color:#fff;';
+                    div.appendChild(lbl);
+                }
+                return div;
+            }
+
+            // Margin bars (orange)
+            if (margin.top > 0) {
+                container.appendChild(createBar(
+                    `position:absolute;left:${pos.left - margin.left}px;top:${pos.top - margin.top}px;width:${w + margin.left + margin.right}px;height:${margin.top}px;background:rgba(255,165,0,0.25);border-top:2px solid rgba(255,165,0,0.7);`,
+                    `margin-top: ${margin.top}px`
+                ));
+            }
+            if (margin.bottom > 0) {
+                container.appendChild(createBar(
+                    `position:absolute;left:${pos.left - margin.left}px;top:${pos.top + h}px;width:${w + margin.left + margin.right}px;height:${margin.bottom}px;background:rgba(255,165,0,0.25);border-bottom:2px solid rgba(255,165,0,0.7);`,
+                    `margin-bottom: ${margin.bottom}px`
+                ));
+            }
+            if (margin.left > 0) {
+                container.appendChild(createBar(
+                    `position:absolute;left:${pos.left - margin.left}px;top:${pos.top}px;width:${margin.left}px;height:${h}px;background:rgba(255,165,0,0.25);border-left:2px solid rgba(255,165,0,0.7);`,
+                    `margin-left: ${margin.left}px`
+                ));
+            }
+            if (margin.right > 0) {
+                container.appendChild(createBar(
+                    `position:absolute;left:${pos.left + w}px;top:${pos.top}px;width:${margin.right}px;height:${h}px;background:rgba(255,165,0,0.25);border-right:2px solid rgba(255,165,0,0.7);`,
+                    `margin-right: ${margin.right}px`
+                ));
+            }
+
+            // Padding bars (blue)
+            if (padding.top > 0) {
+                container.appendChild(createBar(
+                    `position:absolute;left:${pos.left}px;top:${pos.top}px;width:${w}px;height:${padding.top}px;background:rgba(66,133,244,0.25);border-top:2px solid rgba(66,133,244,0.7);`,
+                    `padding-top: ${padding.top}px`
+                ));
+            }
+            if (padding.bottom > 0) {
+                container.appendChild(createBar(
+                    `position:absolute;left:${pos.left}px;top:${pos.top + h - padding.bottom}px;width:${w}px;height:${padding.bottom}px;background:rgba(66,133,244,0.25);border-bottom:2px solid rgba(66,133,244,0.7);`,
+                    `padding-bottom: ${padding.bottom}px`
+                ));
+            }
+            if (padding.left > 0) {
+                container.appendChild(createBar(
+                    `position:absolute;left:${pos.left}px;top:${pos.top}px;width:${padding.left}px;height:${h}px;background:rgba(66,133,244,0.25);border-left:2px solid rgba(66,133,244,0.7);`,
+                    `padding-left: ${padding.left}px`
+                ));
+            }
+            if (padding.right > 0) {
+                container.appendChild(createBar(
+                    `position:absolute;left:${pos.left + w - padding.right}px;top:${pos.top}px;width:${padding.right}px;height:${h}px;background:rgba(66,133,244,0.25);border-right:2px solid rgba(66,133,244,0.7);`,
+                    `padding-right: ${padding.right}px`
+                ));
+            }
+
+            if (container.children.length > 0) {
+                canvas.appendChild(container);
+            }
+        }
+
+        function hideSpacingGuides() {
+            const existing = document.getElementById('spacing-guides');
+            if (existing) existing.remove();
+        }
+
+        /* --- VIEWPORT PRESETS --- */
+        function setViewport(width, btn) {
+            currentViewport = width;
+            const canvas = document.getElementById('canvas');
+            if (width === '100%') {
+                canvas.style.maxWidth = '';
+                canvas.style.margin = '';
+            } else {
+                canvas.style.maxWidth = width;
+                canvas.style.margin = '0 auto';
+            }
+            document.querySelectorAll('.vp-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            document.getElementById('vp-custom-input').value = '';
+        }
+
+        function getSavedViewports() {
+            return JSON.parse(localStorage.getItem('web_builder_viewports')) || [];
+        }
+
+        function saveViewports(presets) {
+            localStorage.setItem('web_builder_viewports', JSON.stringify(presets));
+        }
+
+        function saveCustomPreset() {
+            const input = document.getElementById('vp-custom-input');
+            const val = parseInt(input.value);
+            if (!val || val < 200 || val > 2000) return;
+            const presets = getSavedViewports();
+            const label = val + 'px';
+            if (presets.some(p => p.label === label)) {
+                setViewport(label, null);
+                return;
+            }
+            presets.push({ label: label, width: label });
+            saveViewports(presets);
+            renderViewportPresets();
+            setViewport(label, document.querySelector('.vp-btn[data-vp="' + label + '"]'));
+            input.value = '';
+        }
+
+        function removeCustomViewport(label, e) {
+            e.stopPropagation();
+            let presets = getSavedViewports();
+            presets = presets.filter(p => p.label !== label);
+            saveViewports(presets);
+            if (currentViewport === label) setViewport('100%', document.querySelector('.vp-btn[data-vp="100%"]'));
+            renderViewportPresets();
+        }
+
+        function renderViewportPresets() {
+            const container = document.getElementById('vp-presets');
+            container.innerHTML = '';
+            const builtIn = [
+                { label: '🖥️', width: '100%', isDefault: true },
+                { label: '📱 768', width: '768px' },
+                { label: '📱 375', width: '375px' }
+            ];
+            const saved = getSavedViewports();
+            builtIn.concat(saved).forEach(p => {
+                const wrap = document.createElement('span');
+                wrap.className = 'vp-btn-wrap';
+                const btn = document.createElement('button');
+                btn.className = 'vp-btn' + (currentViewport === p.width ? ' active' : '');
+                btn.dataset.vp = p.width;
+                btn.textContent = p.label;
+                btn.onclick = () => setViewport(p.width, btn);
+                wrap.appendChild(btn);
+                if (!p.isDefault) {
+                    const rm = document.createElement('button');
+                    rm.className = 'vp-btn-remove';
+                    rm.textContent = '✕';
+                    rm.title = 'Remover preset';
+                    rm.onclick = (e) => removeCustomViewport(p.label, e);
+                    wrap.appendChild(rm);
+                }
+                container.appendChild(wrap);
+            });
+        }
+
+        function openEditor(el) {
+            showSpacingGuides(el);
+            document.getElementById('menu-editor').style.display = 'flex';
+            renderAttributesTab(el);
+            renderCSSTab(el);
+            switchEditorTab(lastEditorTab);
+
+            // Setup tab switching
+            document.querySelectorAll('.editor-tab-btn').forEach(btn => {
+                btn.onclick = () => switchEditorTab(btn.dataset.tab);
+            });
+        }
+
+        function switchEditorTab(tab) {
+            lastEditorTab = tab;
+            document.querySelectorAll('.editor-tab-btn').forEach(b =>
+                b.classList.toggle('active', b.dataset.tab === tab)
+            );
+            document.querySelectorAll('.editor-tab-pane').forEach(p =>
+                p.classList.toggle('active', p.id === 'editor-tab-' + tab)
+            );
+        }
+
+        /* --- ATRIBUTOS TAB --- */
+
+        const attrConfigByTag = {
+            IMG: ['src', 'alt', 'width', 'height', 'id', 'title'],
+            INPUT: ['type', 'name', 'value', 'placeholder', 'id', 'title'],
+            BUTTON: ['type', 'name', 'value', 'id', 'title'],
+            A: ['href', 'target', 'id', 'title'],
+            default: ['id', 'title']
+        };
+
+        const skipAttrs = ['class', 'style', 'data-comp'];
+
+        function renderAttributesTab(el) {
+            const container = document.getElementById('editor-tab-attributes');
+            container.innerHTML = '';
+
+            const tag = el.tagName;
+            const commonAttrs = attrConfigByTag[tag] || attrConfigByTag.default;
+
+            const existingAttrs = {};
+            el.getAttributeNames().forEach(name => { existingAttrs[name] = el.getAttribute(name); });
+
+            // Common attributes
+            const title = document.createElement('div');
+            title.style.cssText = 'font-size:11px;font-weight:700;text-transform:uppercase;color:#93c5fd;margin-bottom:4px;';
+            title.textContent = 'Atributos Comuns';
+            container.appendChild(title);
+
+            commonAttrs.forEach(attrName => {
+                const row = document.createElement('div');
+                row.className = 'attr-row';
+
+                const key = document.createElement('span');
+                key.className = 'attr-key';
+                key.textContent = attrName;
+                row.appendChild(key);
+
+                let input;
+                if (attrName === 'target') {
+                    input = document.createElement('select');
+                    ['_self', '_blank', '_parent', '_top'].forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v;
+                        opt.textContent = v;
+                        if (v === (existingAttrs[attrName] || '_self')) opt.selected = true;
+                        input.appendChild(opt);
+                    });
+                    input.addEventListener('change', () => el.setAttribute(attrName, input.value));
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = existingAttrs[attrName] || '';
+                    input.placeholder = attrName;
+                    input.addEventListener('input', () => {
+                        if (input.value) el.setAttribute(attrName, input.value);
+                        else el.removeAttribute(attrName);
+                    });
+                }
+
+                row.appendChild(input);
+                container.appendChild(row);
+            });
+
+            // All existing attributes
+            const existingTitle = document.createElement('div');
+            existingTitle.style.cssText = 'font-size:11px;font-weight:700;text-transform:uppercase;color:#a1a1aa;margin-top:10px;margin-bottom:4px;';
+            existingTitle.textContent = 'Outros Atributos';
+            container.appendChild(existingTitle);
+
+            const existingContainer = document.createElement('div');
+            existingContainer.id = 'existing-attrs-container';
+            existingContainer.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
+            container.appendChild(existingContainer);
+
+            function renderExistingAttrs() {
+                existingContainer.innerHTML = '';
+                const names = el.getAttributeNames().filter(n => !skipAttrs.includes(n) && !commonAttrs.includes(n));
+                if (names.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.style.cssText = 'font-size:11px;color:#666;padding:4px 0;';
+                    empty.textContent = 'Nenhum atributo adicional.';
+                    existingContainer.appendChild(empty);
+                    return;
+                }
+                names.forEach(name => {
+                    const row = document.createElement('div');
+                    row.className = 'attr-row';
+
+                    const key = document.createElement('span');
+                    key.className = 'attr-key';
+                    key.textContent = name;
+                    row.appendChild(key);
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = el.getAttribute(name) || '';
+                    input.addEventListener('input', () => {
+                        if (input.value) el.setAttribute(name, input.value);
+                        else el.removeAttribute(name);
+                    });
+                    row.appendChild(input);
+
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-remove-attr';
+                    btn.textContent = 'X';
+                    btn.addEventListener('click', () => {
+                        el.removeAttribute(name);
+                        renderExistingAttrs();
+                    });
+                    row.appendChild(btn);
+
+                    existingContainer.appendChild(row);
+                });
+            }
+            renderExistingAttrs();
+
+            // Add custom attribute
+            const addRow = document.createElement('div');
+            addRow.style.cssText = 'display:flex;gap:4px;margin-top:6px;';
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.placeholder = 'nome';
+            nameInput.style.cssText = 'flex:1;min-width:0;background:var(--bg-primary);border:1px solid var(--border-color);color:white;padding:3px 6px;border-radius:3px;font-size:12px;outline:none;';
+            const valInput = document.createElement('input');
+            valInput.type = 'text';
+            valInput.placeholder = 'valor';
+            valInput.style.cssText = 'flex:1;min-width:0;background:var(--bg-primary);border:1px solid var(--border-color);color:white;padding:3px 6px;border-radius:3px;font-size:12px;outline:none;';
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn-add-attr';
+            addBtn.textContent = '+ Adicionar';
+            addBtn.addEventListener('click', () => {
+                const n = nameInput.value.trim();
+                const v = valInput.value.trim();
+                if (n) {
+                    el.setAttribute(n, v || '');
+                    nameInput.value = '';
+                    valInput.value = '';
+                    renderExistingAttrs();
+                }
+            });
+            addRow.appendChild(nameInput);
+            addRow.appendChild(valInput);
+            addRow.appendChild(addBtn);
+            container.appendChild(addRow);
+
+            // Text content editor for non-special elements
+            const compType = el.getAttribute('data-comp') || 'custom';
+            if (compType !== 'image' && compType !== 'input' && compType !== 'container') {
+                const textSection = document.createElement('div');
+                textSection.style.cssText = 'margin-top:10px;border-top:1px solid var(--border-color);padding-top:10px;';
+                const textLabel = document.createElement('label');
+                textLabel.style.cssText = 'font-size:11px;font-weight:700;text-transform:uppercase;color:#93c5fd;display:block;margin-bottom:4px;';
+                textLabel.textContent = 'Conteúdo HTML Interno';
+                textSection.appendChild(textLabel);
+                const textarea = document.createElement('textarea');
+                textarea.id = 'edit-text-content';
+                textarea.rows = 3;
+                textarea.value = el.innerHTML;
+                textarea.style.cssText = 'width:100%;background:var(--bg-primary);border:1px solid var(--border-color);color:white;padding:6px 10px;border-radius:4px;font-size:13px;outline:none;resize:vertical;font-family:monospace;';
+                textarea.addEventListener('input', () => {
+                    saveState();
+                    el.innerHTML = textarea.value;
+                    el.querySelectorAll('.editable-element').forEach(child => { child._wb_bound = false; });
+                    el.querySelectorAll('.editable-element').forEach(child => bindElementEvents(child));
+                });
+                textSection.appendChild(textarea);
+                container.appendChild(textSection);
+            }
+        }
+
+        /* --- CSS TAB (TEXTAREA) --- */
+
+        function renderCSSTab(el) {
+            const container = document.getElementById('editor-tab-css');
+            container.innerHTML = '';
+
+            // Sub-tabs
+            const tabBar = document.createElement('div');
+            tabBar.className = 'css-sub-tabs';
+            const tabDesktop = document.createElement('button');
+            tabDesktop.className = 'css-sub-tab active';
+            tabDesktop.textContent = 'Desktop';
+            const tabCustom = document.createElement('button');
+            tabCustom.className = 'css-sub-tab';
+            tabCustom.textContent = 'Custom';
+            tabBar.appendChild(tabDesktop);
+            tabBar.appendChild(tabCustom);
+            container.appendChild(tabBar);
+
+            // Desktop pane — inline styles
+            const desktopPane = document.createElement('div');
+            desktopPane.id = 'css-desktop-pane';
+            desktopPane.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0;';
+
+            const desktopLabel = document.createElement('label');
+            desktopLabel.style.cssText = 'font-size:11px;font-weight:700;text-transform:uppercase;color:#a1a1aa;display:block;margin-bottom:4px;';
+            desktopLabel.textContent = 'Estilos Inline (este elemento)';
+            desktopPane.appendChild(desktopLabel);
+
+            const desktopTA = document.createElement('textarea');
+            desktopTA.id = 'css-editor-textarea';
+            desktopTA.spellcheck = false;
+            desktopTA.rows = 12;
+            desktopTA.style.cssText = 'width:100%;flex:1;background:#1e1e1e;color:#a3e635;font-family:monospace;padding:10px;border:1px solid var(--border-color);border-radius:4px;resize:vertical;outline:none;font-size:13px;line-height:1.5;tab-size:4;white-space:pre;overflow:auto;';
+
+            const styles = el.style.cssText;
+            if (styles) {
+                desktopTA.value = styles.split(';').map(s => s.trim()).filter(s => s).join(';\n') + ';';
+            }
+
+            let debounce;
+            desktopTA.addEventListener('input', () => {
+                clearTimeout(debounce);
+                debounce = setTimeout(() => {
+                    saveState();
+                    el.style.cssText = desktopTA.value;
+                    showSpacingGuides(el);
+                }, 600);
+            });
+
+            desktopTA.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = desktopTA.selectionStart;
+                    const end = desktopTA.selectionEnd;
+                    desktopTA.value = desktopTA.value.substring(0, start) + '    ' + desktopTA.value.substring(end);
+                    desktopTA.selectionStart = desktopTA.selectionEnd = start + 4;
+                    desktopTA.dispatchEvent(new Event('input'));
+                }
+            });
+
+            desktopPane.appendChild(desktopTA);
+
+            // Custom pane — per-element CSS with media queries
+            const customPane = document.createElement('div');
+            customPane.id = 'css-custom-pane';
+            customPane.style.cssText = 'display:none;flex-direction:column;flex:1;min-height:0;';
+
+            const customLabel = document.createElement('label');
+            customLabel.style.cssText = 'font-size:11px;font-weight:700;text-transform:uppercase;color:#a1a1aa;display:block;margin-bottom:4px;';
+            customLabel.textContent = 'CSS Personalizado (com @media)';
+            customPane.appendChild(customLabel);
+
+            const mqBar = document.createElement('div');
+            mqBar.style.cssText = 'display:flex;gap:4px;margin-bottom:6px;';
+            const mqBtns = [
+                { key: '768', label: '📱 768' },
+                { key: '1024', label: '💻 1024' },
+                { key: 'dark', label: '🌙 Dark' }
+            ];
+            mqBtns.forEach(b => {
+                const btn = document.createElement('button');
+                btn.textContent = b.label;
+                btn.style.cssText = 'background:#2a2a36;border:1px solid #555;color:#ccc;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;font-family:inherit;';
+                btn.onmouseover = () => btn.style.borderColor = '#f59e0b';
+                btn.onmouseout = () => btn.style.borderColor = '#555';
+                btn.onclick = (e) => { e.preventDefault(); insertMQTemplate(b.key); };
+                mqBar.appendChild(btn);
+            });
+            customPane.appendChild(mqBar);
+
+            const customTA = document.createElement('textarea');
+            customTA.id = 'css-custom-textarea';
+            customTA.spellcheck = false;
+            customTA.rows = 12;
+            customTA.placeholder = '/* Exemplo:\n@media (max-width: 768px) {\n    font-size: 14px;\n    color: #a78bfa;\n}*/';
+            customTA.style.cssText = 'width:100%;flex:1;background:#1e1e1e;color:#f59e0b;font-family:monospace;padding:10px;border:1px solid var(--border-color);border-radius:4px;resize:vertical;outline:none;font-size:13px;line-height:1.5;tab-size:4;white-space:pre;overflow:auto;';
+
+            customTA.value = el.dataset.wbCss || '';
+
+            let customDebounce;
+            customTA.addEventListener('input', () => {
+                clearTimeout(customDebounce);
+                customDebounce = setTimeout(() => {
+                    saveState();
+                    el.dataset.wbCss = customTA.value;
+                    syncCustomCSS();
+                }, 600);
+            });
+
+            customTA.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = customTA.selectionStart;
+                    const end = customTA.selectionEnd;
+                    customTA.value = customTA.value.substring(0, start) + '    ' + customTA.value.substring(end);
+                    customTA.selectionStart = customTA.selectionEnd = start + 4;
+                    customTA.dispatchEvent(new Event('input'));
+                }
+            });
+
+            customPane.appendChild(customTA);
+
+            container.appendChild(desktopPane);
+            container.appendChild(customPane);
+
+            // Sub-tab switching
+            tabDesktop.onclick = () => {
+                tabDesktop.classList.add('active');
+                tabCustom.classList.remove('active');
+                desktopPane.style.display = 'flex';
+                customPane.style.display = 'none';
+            };
+            tabCustom.onclick = () => {
+                tabCustom.classList.add('active');
+                tabDesktop.classList.remove('active');
+                customPane.style.display = 'flex';
+                desktopPane.style.display = 'none';
+            };
+        }
+
+        function deleteElement() { if (selectedElement) { saveState(); selectedElement.remove(); clearSelection(); saveState(); } }
+
+        function syncCustomCSS() {
+            const canvas = document.getElementById('canvas');
+            const styleEl = document.getElementById('wb-custom-css');
+            let css = '';
+            canvas.querySelectorAll('[data-wb-css]').forEach(el => {
+                const wbCss = el.dataset.wbCss;
+                if (!wbCss || !wbCss.trim()) return;
+                const id = el.getAttribute('data-wb-id');
+                const selector = '[data-wb-id="' + id + '"]';
+                // If user wrote @media blocks, wrap content; otherwise wrap bare rules
+                const lines = wbCss.split('\n');
+                let outBlock = '';
+                let inMedia = false;
+                let mediaOpen = '';
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('@media')) {
+                        inMedia = true;
+                        mediaOpen = trimmed.replace(/\s*\{[\s\S]*/, '');
+                        outBlock += selector + ' ' + trimmed.replace(/\{/, '{\n').replace(/\}[\s]*$/, '') + '}\n';
+                    } else if (trimmed === '}' && inMedia) {
+                        inMedia = false;
+                    } else if (!inMedia && trimmed) {
+                        outBlock += selector + ' { ' + trimmed + ' }\n';
+                    }
+                });
+                css += outBlock;
+            });
+            styleEl.textContent = css;
+        }
+
+        const mqTemplates = {
+            '768': '@media (max-width: 768px) {\n    \n}',
+            '1024': '@media (max-width: 1024px) {\n    \n}',
+            'dark': '@media (prefers-color-scheme: dark) {\n    \n}'
+        };
+
+        function insertMQTemplate(key) {
+            const ta = document.getElementById('css-custom-textarea');
+            if (!ta) return;
+            const template = mqTemplates[key];
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            const before = ta.value.substring(0, start);
+            const after = ta.value.substring(end);
+            const sep = before.length > 0 && !before.endsWith('\n') ? '\n' : '';
+            ta.value = before + sep + template + '\n' + after;
+            const cursorPos = start + sep.length + template.indexOf('\n    \n') + 5;
+            ta.selectionStart = ta.selectionEnd = cursorPos;
+            ta.focus();
+            ta.dispatchEvent(new Event('input'));
+        }
+
+        function duplicateElement() {
+            if (!selectedElement) return;
+            saveState();
+            const clone = selectedElement.cloneNode(true);
+            clone._wb_bound = false;
+            clone.classList.remove('selected');
+            clone.removeAttribute('data-wb-id');
+            selectedElement.parentElement.appendChild(clone);
+            assignWbId(clone);
+            clone.querySelectorAll('.editable-element').forEach(child => { child._wb_bound = false; child.removeAttribute('data-wb-id'); });
+            clone.querySelectorAll('.editable-element').forEach(child => { assignWbId(child); bindElementEvents(child); });
+            bindElementEvents(clone);
+            saveState();
+            clone.click();
+        }
+
+        /* --- CONTROLE DA LISTA DINÂMICA FILTRADA --- */
+        function renderComponentMenu() {
+            const searchVal = document.getElementById('component-search').value.toLowerCase().trim();
+            const listContainer = document.getElementById('dynamic-components-list');
+            listContainer.innerHTML = "";
+
+            const currentLibrary = JSON.parse(localStorage.getItem('web_builder_library')) || [];
+            const allItems = [];
+
+            basicComponentsRegistry.forEach(c => allItems.push({ ...c, isCustom: false }));
+            currentLibrary.forEach(item => allItems.push({ type: 'custom', name: item.name, category: '★ Meus Blocos Salvos', html: item.html, isCustom: true, id: item.id }));
+
+            const filteredItems = allItems.filter(item => item.name.toLowerCase().includes(searchVal));
+            const categories = {};
+
+            filteredItems.forEach(item => {
+                if (!categories[item.category]) categories[item.category] = [];
+                categories[item.category].push(item);
+            });
+
+            for (const catName in categories) {
+                const groupTitle = document.createElement('div');
+                groupTitle.className = 'comp-group-title';
+                if (catName.includes('★')) groupTitle.style.color = '#eab308';
+                groupTitle.innerText = catName;
+                listContainer.appendChild(groupTitle);
+
+                categories[catName].forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'comp-item';
+                    if (item.isCustom) div.style.borderColor = '#eab308';
+                    div.innerText = (item.isCustom ? '⭐ ' : '') + item.name;
+
+                    div.onclick = () => {
+                        if (item.isCustom) { insertComponent(null, item.html); }
+                        else { insertComponent(item.type); }
+                    };
+                    listContainer.appendChild(div);
+                });
+            }
+
+            if (filteredItems.length === 0) {
+                listContainer.innerHTML = `<div style="font-size:12px; color:#666; padding:10px; text-align:center;">Nenhum componente encontrado.</div>`;
+            }
+        }
+
+        /* --- INTERAÇÃO DA TELA DA BIBLIOTECA POR ESCRITA DE CÓDIGO --- */
+        function addCustomCodeToLibrary() {
+            const nameInput = document.getElementById('lib-input-name');
+            const codeInput = document.getElementById('lib-input-code');
+            const name = nameInput.value.trim();
+            let rawCode = codeInput.value.trim();
+
+            if (!name || !rawCode) {
+                alert("Por favor, forneça um Nome e insira o Código HTML válido.");
+                return;
+            }
+
+            // Garante que o nó raiz inserido possua as propriedades operacionais do builder
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = rawCode;
+            let rootNode = wrapper.firstElementChild;
+
+            if (!rootNode) {
+                // Conteúdo sem elemento raiz (texto puro) — envolve num div
+                wrapper.innerHTML = `<div class="editable-element" data-comp="custom">${rawCode}</div>`;
+                rootNode = wrapper.firstElementChild;
+            } else {
+                rootNode.classList.add('editable-element');
+                if (!rootNode.getAttribute('data-comp')) rootNode.setAttribute('data-comp', 'custom');
+            }
+            rawCode = rootNode.outerHTML;
+
+            const libraryItem = { id: 'comp_' + Date.now(), name: name, html: rawCode };
+            let currentLibrary = JSON.parse(localStorage.getItem('web_builder_library')) || [];
+            currentLibrary.push(libraryItem);
+            localStorage.setItem('web_builder_library', JSON.stringify(currentLibrary));
+
+            nameInput.value = "";
+            codeInput.value = "";
+            alert(`"${name}" foi adicionado com sucesso ao catálogo!`);
+            renderComponentMenu();
+            renderLibrary();
+        }
+
+        function saveToLibraryFromCanvas() {
+            if (!selectedElement) return;
+            const name = prompt("Dê um nome para salvar este componente do canvas na biblioteca:");
+            if (!name) return;
+
+            const cleanClone = selectedElement.cloneNode(true);
+            cleanClone.classList.remove('selected');
+
+            const libraryItem = { id: 'comp_' + Date.now(), name: name, html: cleanClone.outerHTML };
+            let currentLibrary = JSON.parse(localStorage.getItem('web_builder_library')) || [];
+            currentLibrary.push(libraryItem);
+            localStorage.setItem('web_builder_library', JSON.stringify(currentLibrary));
+
+            alert(`"${name}" foi arquivado!`);
+            renderComponentMenu();
+        }
+
+        function renderLibrary() {
+            const grid = document.getElementById('library-grid-container');
+            grid.innerHTML = "";
+            const currentLibrary = JSON.parse(localStorage.getItem('web_builder_library')) || [];
+
+            if (currentLibrary.length === 0) {
+                grid.innerHTML = `<p style="grid-column: 1/-1; color:#666; text-align:center; padding: 40px 0;">Nenhum componente customizado cadastrado ainda.</p>`;
+                return;
+            }
+
+            currentLibrary.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'library-card';
+                card.innerHTML = `
+                    <div class="library-card-header">
+                        <strong>${item.name}</strong>
+                        <button class="btn-action" style="background:#ef4444; padding:4px 8px; font-size:12px;" onclick="deleteFromLibrary('${item.id}', event)">Excluir</button>
+                    </div>
+                    <div class="library-preview-box">${item.html}</div>
+                    <div style="font-size:11px; color:#aaa; font-family:monospace; background:#222; padding:6px; border-radius:4px; max-height:60px; overflow-y:auto; word-break:break-all;">${escapeHTML(item.html)}</div>
+                    <button class="btn-action" style="width:100%;" onclick="useFromLibrary('${item.id}')">Injetar no Canvas</button>
+                `;
+                card.querySelector('.library-preview-box').querySelectorAll('*').forEach(el => el.style.pointerEvents = 'none');
+                grid.appendChild(card);
+            });
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function useFromLibrary(id) {
+            const currentLibrary = JSON.parse(localStorage.getItem('web_builder_library')) || [];
+            const item = currentLibrary.find(i => i.id === id);
+            if (item) { switchTab('edit'); insertComponent(null, item.html); }
+        }
+
+        function deleteFromLibrary(id, e) {
+            e.stopPropagation();
+            let currentLibrary = JSON.parse(localStorage.getItem('web_builder_library')) || [];
+            currentLibrary = currentLibrary.filter(i => i.id !== id);
+            localStorage.setItem('web_builder_library', JSON.stringify(currentLibrary));
+            renderLibrary();
+            renderComponentMenu();
+        }
+
+        function generateCode() {
+            const canvasClone = document.getElementById('canvas').cloneNode(true);
+            canvasClone.querySelectorAll('.editable-element').forEach(el => {
+                el.classList.remove('editable-element', 'selected');
+                el.removeAttribute('data-comp');
+                el.removeAttribute('data-wb-id');
+                el.removeAttribute('data-wb-css');
+                if (!el.getAttribute('class')) el.removeAttribute('class');
+            });
+
+            // Collect custom CSS from all elements
+            const origCanvas = document.getElementById('canvas');
+            let customCSS = '';
+            origCanvas.querySelectorAll('[data-wb-css]').forEach(el => {
+                const wbCss = el.dataset.wbCss;
+                if (!wbCss || !wbCss.trim()) return;
+                const id = el.getAttribute('data-wb-id');
+                const selector = '[data-wb-id="' + id + '"]';
+                const lines = wbCss.split('\n');
+                let inMedia = false;
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('@media')) {
+                        inMedia = true;
+                        customCSS += selector + ' ' + trimmed + '\n';
+                    } else if (trimmed === '}' && inMedia) {
+                        inMedia = false;
+                        customCSS += '}\n';
+                    } else if (!inMedia && trimmed) {
+                        customCSS += selector + ' { ' + trimmed + ' }\n';
+                    } else if (inMedia && trimmed) {
+                        customCSS += '    ' + trimmed + '\n';
+                    }
+                });
+            });
+
+            const customCSSBlock = customCSS ? '\n        /* CSS Personalizado */\n        ' + customCSS : '';
+
+            document.getElementById('code-output').value = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Página Exportada</title>
+    <style>
+        .c-title { font-size: 2rem; font-weight: bold; margin-bottom: 10px; color: #111827; }
+        .c-paragraph { font-size: 1rem; line-height: 1.5; color: #4b5563; margin-bottom: 10px; }
+        .c-button { background-color: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; display: inline-block; }
+        .c-image { max-width: 100%; height: auto; display: block; border-radius: 4px; }
+        .c-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; margin-bottom: 10px; }
+        .c-input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; }
+        .c-alert { padding: 15px; background-color: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; border-radius: 4px; margin-bottom: 10px; }
+        .c-badge { display: inline-block; padding: 4px 8px; background: #e0e7ff; color: #4338ca; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .c-list { padding-left: 20px; margin-bottom: 5px; }
+        .c-container { display: flex; flex-direction: column; gap: 15px; padding: 20px; min-height: auto; margin-bottom: 15px; border-radius: 6px; }${customCSSBlock}
+    </style>
+</head>
+<body>${canvasClone.innerHTML.trim()}</body>
+</html>`;
+        }
+
+        function copyCode() {
+            const t = document.getElementById('code-output');
+            navigator.clipboard.writeText(t.value).then(() => alert('Código copiado!')).catch(() => {
+                t.select(); document.execCommand('copy'); alert('Código copiado!');
+            });
+        }
+        function downloadCode() { const t = document.getElementById('code-output').value; const b = new Blob([t], { type: 'text/html' }); const a = document.createElement('a'); a.download = 'index.html'; a.href = window.URL.createObjectURL(b); a.click(); }
+
+        // --- SISTEMA DE ARRASTO REFORMULADO POR COORDENADAS COMPUTADAS ABSOLUTAS ---
+        dragElement(document.getElementById("menu-components"));
+        dragElement(document.getElementById("menu-editor"));
+
+        function dragElement(elmnt) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            const header = elmnt.querySelector(".menu-header");
+            if (header) header.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                if (['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'OPTION'].includes(e.target.tagName)) return;
+                e = e || window.event;
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+
+                // Extrai dinamicamente as propriedades computadas finais da folha de estilos ativa
+                const currentTop = parseInt(window.getComputedStyle(elmnt).top) || 0;
+                const currentLeft = parseInt(window.getComputedStyle(elmnt).left) || 0;
+
+                elmnt.style.top = (currentTop - pos2) + "px";
+                elmnt.style.left = (currentLeft - pos1) + "px";
+                elmnt.style.right = "auto";
+                elmnt.style.bottom = "auto";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+        /* ================================================================
+           UNDO / REDO
+           ================================================================ */
+        let history = [];
+        let historyIndex = -1;
+        const MAX_HISTORY = 50;
+
+        function saveState() {
+            const canvasHTML = document.getElementById('canvas').innerHTML;
+            if (historyIndex < history.length - 1) {
+                history = history.slice(0, historyIndex + 1);
+            }
+            history.push(canvasHTML);
+            if (history.length > MAX_HISTORY) history.shift();
+            historyIndex = history.length - 1;
+        }
+
+        function undo() {
+            if (historyIndex <= 0) return;
+            historyIndex--;
+            restoreState(history[historyIndex]);
+        }
+
+        function redo() {
+            if (historyIndex >= history.length - 1) return;
+            historyIndex++;
+            restoreState(history[historyIndex]);
+        }
+
+        function restoreState(html) {
+            const canvas = document.getElementById('canvas');
+            clearSelection();
+            canvas.innerHTML = html;
+            canvas.querySelectorAll('.editable-element').forEach(el => { assignWbId(el); bindElementEvents(el); });
+            canvas.querySelectorAll('.c-container').forEach(c => {
+                if (!c.classList.contains('editable-element')) c.classList.add('editable-element');
+                assignWbId(c);
+                bindElementEvents(c);
+            });
+            syncCustomCSS();
+            autoSaveDebounced();
+        }
+
+        /* ================================================================
+           KEYBOARD SHORTCUTS
+           ================================================================ */
+        document.addEventListener('keydown', function (e) {
+            const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+
+            // Delete / Backspace — remove elemento selecionado
+            if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput && selectedElement && currentTab === 'edit') {
+                e.preventDefault();
+                deleteElement();
+                return;
+            }
+
+            // Ctrl+Z — undo
+            if (e.ctrlKey && !e.shiftKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+                return;
+            }
+
+            // Ctrl+Shift+Z — redo
+            if (e.ctrlKey && e.shiftKey && e.key === 'Z') {
+                e.preventDefault();
+                redo();
+                return;
+            }
+
+            // Ctrl+D — duplicar
+            if (e.ctrlKey && e.key === 'd' && !isInput && selectedElement) {
+                e.preventDefault();
+                duplicateElement();
+                return;
+            }
+
+            // Ctrl+S — salvar projeto
+            if (e.ctrlKey && e.key === 's' && currentTab !== 'library') {
+                e.preventDefault();
+                saveProject();
+                return;
+            }
+
+            // Ctrl+N — novo projeto
+            if (e.ctrlKey && e.key === 'n' && !isInput) {
+                e.preventDefault();
+                newProject();
+                return;
+            }
+        });
+
+        /* ================================================================
+           MOVER ELEMENTO (▲ ▼)
+           ================================================================ */
+        function moveElement(direction) {
+            if (!selectedElement) return;
+            saveState();
+            const parent = selectedElement.parentElement;
+            if (direction === -1 && selectedElement.previousElementSibling) {
+                parent.insertBefore(selectedElement, selectedElement.previousElementSibling);
+            } else if (direction === 1 && selectedElement.nextElementSibling) {
+                parent.insertBefore(selectedElement.nextElementSibling, selectedElement);
+            }
+            bindElementEvents(selectedElement);
+            showSpacingGuides(selectedElement);
+            saveState();
+        }
+
+        /* ================================================================
+           DRAG & DROP
+           ================================================================ */
+        let draggedElement = null;
+
+        function setupDragDrop(el) {
+            el.setAttribute('draggable', 'true');
+
+            el.addEventListener('dragstart', (e) => {
+                if (currentTab !== 'edit') return;
+                draggedElement = el;
+                el.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', '');
+            });
+
+            el.addEventListener('dragend', () => {
+                if (draggedElement) draggedElement.classList.remove('dragging');
+                draggedElement = null;
+                document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+            });
+
+            el.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+
+            el.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                el.classList.remove('drag-over');
+                if (!draggedElement || draggedElement === el) return;
+
+                const dropTarget = el.closest('.editable-element');
+                if (!dropTarget) return;
+
+                saveState();
+
+                if (dropTarget.getAttribute('data-comp') === 'container' && draggedElement !== dropTarget) {
+                    dropTarget.appendChild(draggedElement);
+                } else if (dropTarget.parentElement) {
+                    const rect = dropTarget.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        dropTarget.parentElement.insertBefore(draggedElement, dropTarget);
+                    } else {
+                        dropTarget.parentElement.insertBefore(draggedElement, dropTarget.nextSibling);
+                    }
+                }
+
+                bindElementEvents(draggedElement);
+                draggedElement.querySelectorAll('.editable-element').forEach(child => bindElementEvents(child));
+                saveState();
+            });
+
+            el.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                if (el.getAttribute('data-comp') === 'container') {
+                    el.classList.add('drag-over');
+                }
+            });
+
+            el.addEventListener('dragleave', () => {
+                el.classList.remove('drag-over');
+            });
+        }
+
+        /* ================================================================
+           AUTO-SAVE
+           ================================================================ */
+        let autoSaveTimer = null;
+
+        function autoSaveDebounced() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                const canvasHTML = document.getElementById('canvas').innerHTML;
+                const projects = getProjects();
+                const active = localStorage.getItem('web_builder_active_project') || 'untitled';
+
+                if (!projects[active]) {
+                    projects[active] = { id: active, name: 'Rascunho Atual', date: new Date().toISOString() };
+                }
+                projects[active].html = canvasHTML;
+                projects[active].date = new Date().toISOString();
+                localStorage.setItem('web_builder_projects', JSON.stringify(projects));
+            }, 2000);
+        }
+
+        function setupAutoSave() {
+            const canvas = document.getElementById('canvas');
+            const observer = new MutationObserver(() => {
+                if (currentTab === 'edit') autoSaveDebounced();
+            });
+            observer.observe(canvas, { childList: true, subtree: true, attributes: true, characterData: true });
+        }
+
+        /* ================================================================
+           PROJETOS (CRUD)
+           ================================================================ */
+        function getProjects() {
+            return JSON.parse(localStorage.getItem('web_builder_projects')) || {};
+        }
+
+        function saveProjects(projects) {
+            localStorage.setItem('web_builder_projects', JSON.stringify(projects));
+        }
+
+        function saveProject() {
+            const canvasHTML = document.getElementById('canvas').innerHTML;
+            const active = localStorage.getItem('web_builder_active_project') || 'untitled';
+            const projects = getProjects();
+            const existing = projects[active];
+            const name = prompt('Nome do projeto:', existing ? existing.name : 'Meu Projeto');
+            if (!name) return;
+
+            projects[active] = {
+                id: active,
+                name: name,
+                html: canvasHTML,
+                date: new Date().toISOString()
+            };
+            saveProjects(projects);
+            renderProjectsList();
+            alert(`"${name}" salvo com sucesso!`);
+        }
+
+        function loadProject(id) {
+            const projects = getProjects();
+            if (!projects[id]) return;
+            saveState();
+            localStorage.setItem('web_builder_active_project', id);
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = projects[id].html;
+            canvas.querySelectorAll('.editable-element').forEach(el => bindElementEvents(el));
+            canvas.querySelectorAll('.c-container').forEach(c => {
+                if (!c.classList.contains('editable-element')) c.classList.add('editable-element');
+                bindElementEvents(c);
+            });
+            clearSelection();
+            saveState();
+            renderProjectsList();
+            switchTab('edit');
+        }
+
+        function newProject() {
+            if (selectedElement) saveState();
+            const projects = getProjects();
+            const id = 'proj_' + Date.now();
+            projects[id] = { id: id, name: 'Novo Projeto', html: '', date: new Date().toISOString() };
+            saveProjects(projects);
+            localStorage.setItem('web_builder_active_project', id);
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = '';
+            clearSelection();
+            saveState();
+            renderProjectsList();
+            switchTab('edit');
+        }
+
+        function deleteProject(id, e) {
+            e.stopPropagation();
+            if (!confirm('Tem certeza que deseja excluir este projeto?')) return;
+            const projects = getProjects();
+            delete projects[id];
+            saveProjects(projects);
+            if (localStorage.getItem('web_builder_active_project') === id) {
+                const newId = 'proj_' + Date.now();
+                projects[newId] = { id: newId, name: 'Novo Projeto', html: '', date: new Date().toISOString() };
+                saveProjects(projects);
+                localStorage.setItem('web_builder_active_project', newId);
+                const canvas = document.getElementById('canvas');
+                canvas.innerHTML = '';
+                clearSelection();
+                saveState();
+            }
+            renderProjectsList();
+        }
+
+        function renderProjectsList() {
+            const container = document.getElementById('projects-list');
+            if (!container) return;
+            container.innerHTML = '';
+            const projects = getProjects();
+            const activeId = localStorage.getItem('web_builder_active_project') || 'untitled';
+            const keys = Object.keys(projects);
+
+            if (keys.length === 0) {
+                container.innerHTML = '<p style="color:#666;font-size:12px;text-align:center;padding:10px;">Nenhum projeto salvo.</p>';
+                return;
+            }
+
+            keys.forEach(id => {
+                const p = projects[id];
+                const item = document.createElement('div');
+                item.className = 'project-item' + (id === activeId ? ' active' : '');
+                item.onclick = () => loadProject(id);
+                const dateStr = new Date(p.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' });
+                item.innerHTML = `
+                    <span class="project-icon">📄</span>
+                    <div class="project-info">
+                        <div class="project-name">${escapeHTML(p.name)}</div>
+                        <div class="project-date">${dateStr}</div>
+                    </div>
+                    <button class="btn-delete-project" title="Excluir">✕</button>
+                `;
+                item.querySelector('.btn-delete-project').onclick = (ev) => deleteProject(id, ev);
+                container.appendChild(item);
+            });
+        }
+
+        /* ================================================================
+           EXPORT / IMPORT
+           ================================================================ */
+        function downloadJSON(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.download = filename;
+            a.href = URL.createObjectURL(blob);
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function exportProject() {
+            const active = localStorage.getItem('web_builder_active_project') || 'untitled';
+            const projects = getProjects();
+            const project = projects[active];
+            if (!project) { alert('Nenhum projeto para exportar.'); return; }
+            downloadJSON(project, project.name.replace(/[^a-z0-9]/gi, '_') + '.json');
+        }
+
+        function importProject() {
+            document.getElementById('import-project-input').click();
+        }
+
+        function exportLibrary() {
+            const lib = JSON.parse(localStorage.getItem('web_builder_library')) || [];
+            downloadJSON(lib, 'biblioteca.json');
+        }
+
+        function importLibrary() {
+            document.getElementById('import-library-input').click();
+        }
+
+        /* ================================================================
+           INICIALIZAÇÃO
+           ================================================================ */
+        document.getElementById('import-project-input').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    const projects = getProjects();
+                    const id = 'proj_' + Date.now();
+                    data.id = id;
+                    projects[id] = data;
+                    saveProjects(projects);
+                    renderProjectsList();
+                    alert(`Projeto "${data.name}" importado!`);
+                } catch (err) {
+                    alert('Arquivo JSON inválido.');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+
+        document.getElementById('import-library-input').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                try {
+                    const imported = JSON.parse(ev.target.result);
+                    const current = JSON.parse(localStorage.getItem('web_builder_library')) || [];
+                    const existingIds = new Set(current.map(i => i.id));
+                    let added = 0;
+                    imported.forEach(item => {
+                        if (!existingIds.has(item.id)) {
+                            current.push(item);
+                            added++;
+                        }
+                    });
+                    localStorage.setItem('web_builder_library', JSON.stringify(current));
+                    renderComponentMenu();
+                    renderLibrary();
+                    alert(`${added} componente(s) importado(s)!`);
+                } catch (err) {
+                    alert('Arquivo JSON inválido.');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+
+        /* ================================================================
+           BIND DRAG + SAVE STATE NOS COMPONENTES EXISTENTES
+           ================================================================ */
+        const origBindElementEvents = bindElementEvents;
+
+        bindElementEvents = function(element) {
+            if (element._wb_bound) return;
+            element._wb_bound = true;
+            origBindElementEvents(element);
+            setupDragDrop(element);
+        };
+
+        /* ================================================================
+           RESTAURAR RASCUNHO + SETUP
+           ================================================================ */
+        document.addEventListener("DOMContentLoaded", function () {
+            renderComponentMenu();
+            // Restaurar rascunho salvo
+            try {
+                const activeId = localStorage.getItem('web_builder_active_project') || 'untitled';
+                const projects = getProjects();
+                if (projects[activeId] && projects[activeId].html) {
+                    const canvas = document.getElementById('canvas');
+                    canvas.innerHTML = projects[activeId].html;
+                    canvas.querySelectorAll('.editable-element').forEach(el => { assignWbId(el); bindElementEvents(el); });
+                    canvas.querySelectorAll('.c-container').forEach(c => {
+                        if (!c.classList.contains('editable-element')) c.classList.add('editable-element');
+                        assignWbId(c);
+                        bindElementEvents(c);
+                    });
+                    // Recalc max id
+                    canvas.querySelectorAll('[data-wb-id]').forEach(el => {
+                        const id = parseInt(el.getAttribute('data-wb-id'));
+                        if (id > wbIdCounter) wbIdCounter = id;
+                    });
+                }
+            } catch(e) { console.warn('Erro ao restaurar rascunho:', e); }
+            saveState();
+            setupAutoSave();
+            syncCustomCSS();
+            renderProjectsList();
+            renderViewportPresets();
+        });
+    </script>
+</body>
+
+</html>

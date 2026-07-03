@@ -1733,7 +1733,92 @@
         }
 
         function generateCode() {
-            const canvasClone = document.getElementById('canvas').cloneNode(true);
+            const origCanvas = document.getElementById('canvas');
+            const canvasClone = origCanvas.cloneNode(true);
+
+            // Remover overlays e atributos do editor
+            const guides = canvasClone.querySelector('#spacing-guides');
+            if (guides) guides.remove();
+            canvasClone.querySelectorAll('[draggable]').forEach(el => el.removeAttribute('draggable'));
+
+            // Mapeamento de data-comp → CSS da classe
+            const classMap = {
+                container: { sel: '.c-container', css: 'display:flex;flex-direction:column;gap:15px;padding:20px;min-height:auto;border-radius:6px' },
+                title:     { sel: '.c-title',     css: 'font-size:2rem;font-weight:700;margin-bottom:10px;color:#111827' },
+                paragraph: { sel: '.c-paragraph',  css: 'font-size:1rem;line-height:1.5;color:#4b5563;margin-bottom:10px' },
+                button:    { sel: '.c-button',     css: 'background-color:#3b82f6;color:#fff;padding:10px 20px;border:none;border-radius:4px;cursor:pointer;display:inline-block' },
+                image:     { sel: '.c-image',      css: 'max-width:100%;height:auto;display:block;border-radius:4px' },
+                card:      { sel: '.c-card',       css: 'background:#fff;padding:20px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,.05);border:1px solid #e5e7eb;margin-bottom:10px' },
+                input:     { sel: '.c-input',      css: 'width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;margin-bottom:10px' },
+                alert:     { sel: '.c-alert',      css: 'padding:15px;background-color:#fee2e2;color:#991b1b;border-left:4px solid #ef4444;border-radius:4px;margin-bottom:10px' },
+                badge:     { sel: '.c-badge',      css: 'display:inline-block;padding:4px 8px;background:#e0e7ff;color:#4338ca;border-radius:12px;font-size:12px;font-weight:700' },
+                list:      { sel: '.c-list',       css: 'padding-left:20px;margin-bottom:5px' }
+            };
+
+            // 1. Detectar quais classes .c-* são usadas no canvas
+            const usedComps = new Set();
+            origCanvas.querySelectorAll('[data-comp]').forEach(el => {
+                usedComps.add(el.getAttribute('data-comp'));
+            });
+
+            let usedCSS = '';
+            usedComps.forEach(comp => {
+                if (classMap[comp]) {
+                    usedCSS += classMap[comp].sel + '{' + classMap[comp].css + '}\n';
+                }
+            });
+
+            // 2. Custom CSS agrupado por seletor (data-wb-id → classe wb-n)
+            let customCSS = '';
+            let customIdCounter = 0;
+            const idToClass = {};
+
+            origCanvas.querySelectorAll('[data-wb-css]').forEach(el => {
+                const wbCss = el.dataset.wbCss;
+                if (!wbCss || !wbCss.trim()) return;
+                const wbId = el.getAttribute('data-wb-id');
+                if (!idToClass[wbId]) {
+                    idToClass[wbId] = 'wb-' + (++customIdCounter);
+                }
+                const cls = '.' + idToClass[wbId];
+                // Parse e agrupa regras
+                const lines = wbCss.split('\n');
+                let inMedia = false;
+                let mediaQ = '';
+                let blockRules = '';
+                lines.forEach(line => {
+                    const t = line.trim();
+                    if (t.startsWith('@media')) {
+                        inMedia = true;
+                        mediaQ = t.replace(/\s*\{[\s\S]*/, '');
+                    } else if (t === '}' && inMedia) {
+                        inMedia = false;
+                        if (blockRules.trim()) {
+                            customCSS += mediaQ + '{' + cls + '{' + blockRules.trim() + '}}\n';
+                        }
+                        blockRules = '';
+                        mediaQ = '';
+                    } else if (!inMedia && t) {
+                        customCSS += cls + '{' + t + '}\n';
+                    } else if (inMedia && t && t !== '}') {
+                        blockRules += t;
+                    }
+                });
+            });
+
+            // 3. Converter id → classe no clone e limpar atributos do builder
+            canvasClone.querySelectorAll('[data-wb-id]').forEach(el => {
+                const wbId = el.getAttribute('data-wb-id');
+                if (idToClass[wbId]) {
+                    el.classList.add(idToClass[wbId]);
+                }
+                el.classList.remove('editable-element', 'selected');
+                el.removeAttribute('data-comp');
+                el.removeAttribute('data-wb-id');
+                el.removeAttribute('data-wb-css');
+                if (!el.getAttribute('class')) el.removeAttribute('class');
+            });
+
             canvasClone.querySelectorAll('.editable-element').forEach(el => {
                 el.classList.remove('editable-element', 'selected');
                 el.removeAttribute('data-comp');
@@ -1742,53 +1827,29 @@
                 if (!el.getAttribute('class')) el.removeAttribute('class');
             });
 
-            // Collect custom CSS from all elements
-            const origCanvas = document.getElementById('canvas');
-            let customCSS = '';
-            origCanvas.querySelectorAll('[data-wb-css]').forEach(el => {
-                const wbCss = el.dataset.wbCss;
-                if (!wbCss || !wbCss.trim()) return;
-                const id = el.getAttribute('data-wb-id');
-                const selector = '[data-wb-id="' + id + '"]';
-                const lines = wbCss.split('\n');
-                let inMedia = false;
-                lines.forEach(line => {
-                    const trimmed = line.trim();
-                    if (trimmed.startsWith('@media')) {
-                        inMedia = true;
-                        customCSS += selector + ' ' + trimmed + '\n';
-                    } else if (trimmed === '}' && inMedia) {
-                        inMedia = false;
-                        customCSS += '}\n';
-                    } else if (!inMedia && trimmed) {
-                        customCSS += selector + ' { ' + trimmed + ' }\n';
-                    } else if (inMedia && trimmed) {
-                        customCSS += '    ' + trimmed + '\n';
-                    }
-                });
+            // 4. Remover style="" vazio
+            canvasClone.querySelectorAll('[style]').forEach(el => {
+                if (!el.getAttribute('style') || !el.getAttribute('style').trim()) {
+                    el.removeAttribute('style');
+                }
             });
 
-            const customCSSBlock = customCSS ? '\n        /* CSS Personalizado */\n        ' + customCSS : '';
+            // 5. Adicionar loading="lazy" em imagens
+            canvasClone.querySelectorAll('img').forEach(el => {
+                if (!el.hasAttribute('loading')) el.setAttribute('loading', 'lazy');
+            });
 
-            document.getElementById('code-output').value = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Página Exportada</title>
-    <style>
-        .c-title { font-size: 2rem; font-weight: bold; margin-bottom: 10px; color: #111827; }
-        .c-paragraph { font-size: 1rem; line-height: 1.5; color: #4b5563; margin-bottom: 10px; }
-        .c-button { background-color: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; display: inline-block; }
-        .c-image { max-width: 100%; height: auto; display: block; border-radius: 4px; }
-        .c-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; margin-bottom: 10px; }
-        .c-input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; }
-        .c-alert { padding: 15px; background-color: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; border-radius: 4px; margin-bottom: 10px; }
-        .c-badge { display: inline-block; padding: 4px 8px; background: #e0e7ff; color: #4338ca; border-radius: 12px; font-size: 12px; font-weight: bold; }
-        .c-list { padding-left: 20px; margin-bottom: 5px; }
-        .c-container { display: flex; flex-direction: column; gap: 15px; padding: 20px; min-height: auto; margin-bottom: 15px; border-radius: 6px; }${customCSSBlock}
-    </style>
-</head>
-<body>${canvasClone.innerHTML.trim()}</body>
-</html>`;
+            // 6. Montar HTML final minificado
+            const body = canvasClone.innerHTML
+                .replace(/\n\s*\n/g, '\n')
+                .trim();
+
+            const allCSS = (usedCSS + (customCSS ? '/*CSS Personalizado*/\n' + customCSS : ''))
+                .replace(/\n{2,}/g, '\n');
+
+            const output = '<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>Página Exportada</title>\n<style>\n' + allCSS + '</style>\n</head>\n<body>\n' + body + '\n</body>\n</html>';
+
+            document.getElementById('code-output').value = output;
         }
 
         function copyCode() {

@@ -899,6 +899,7 @@
                 document.body.classList.add('mode-edit');
                 document.getElementById('canvas-pane').classList.add('active');
                 document.getElementById('menu-components').style.display = 'flex';
+                document.querySelectorAll('#canvas .editable-element:not([draggable])').forEach(el => el.setAttribute('draggable', 'true'));
                 renderComponentMenu();
                 if (selectedElement) {
                     openEditor(selectedElement);
@@ -906,6 +907,7 @@
             } else if (tab === 'view') {
                 document.body.classList.add('mode-preview');
                 document.getElementById('canvas-pane').classList.add('active');
+                document.querySelectorAll('#canvas .editable-element').forEach(el => el.removeAttribute('draggable'));
                 clearSelection();
             } else if (tab === 'code') {
                 document.getElementById('code-pane').classList.add('active');
@@ -2043,53 +2045,62 @@
             el.addEventListener('dragend', () => {
                 if (draggedElement) draggedElement.classList.remove('dragging');
                 draggedElement = null;
+                currentDragOverContainer = null;
                 document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
             });
-
-            el.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            });
-
-            el.addEventListener('drop', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                el.classList.remove('drag-over');
-                if (!draggedElement || draggedElement === el) return;
-
-                const dropTarget = el.closest('.editable-element');
-                if (!dropTarget) return;
-
-                saveState();
-
-                if (dropTarget.getAttribute('data-comp') === 'container' && draggedElement !== dropTarget) {
-                    dropTarget.appendChild(draggedElement);
-                } else if (dropTarget.parentElement) {
-                    const rect = dropTarget.getBoundingClientRect();
-                    const midY = rect.top + rect.height / 2;
-                    if (e.clientY < midY) {
-                        dropTarget.parentElement.insertBefore(draggedElement, dropTarget);
-                    } else {
-                        dropTarget.parentElement.insertBefore(draggedElement, dropTarget.nextSibling);
-                    }
-                }
-
-                bindElementEvents(draggedElement);
-                draggedElement.querySelectorAll('.editable-element').forEach(child => bindElementEvents(child));
-                saveState();
-            });
-
-            el.addEventListener('dragenter', (e) => {
-                e.preventDefault();
-                if (el.getAttribute('data-comp') === 'container') {
-                    el.classList.add('drag-over');
-                }
-            });
-
-            el.addEventListener('dragleave', () => {
-                el.classList.remove('drag-over');
-            });
         }
+
+        let currentDragOverContainer = null;
+
+        document.addEventListener('dragover', (e) => {
+            if (currentTab !== 'edit' || !draggedElement) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const container = e.target.closest('.editable-element[data-comp="container"]');
+            if (container !== currentDragOverContainer) {
+                if (currentDragOverContainer) currentDragOverContainer.classList.remove('drag-over');
+                currentDragOverContainer = container;
+                if (container && container !== draggedElement) container.classList.add('drag-over');
+            }
+        });
+
+        document.addEventListener('dragleave', (e) => {
+            if (!e.relatedTarget || !document.contains(e.relatedTarget)) {
+                document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+                currentDragOverContainer = null;
+            }
+        });
+
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+            currentDragOverContainer = null;
+
+            if (!draggedElement || !e.target.closest('#canvas')) return;
+
+            const dropTarget = e.target.closest('.editable-element');
+            if (!dropTarget || draggedElement === dropTarget) return;
+
+            saveState();
+
+            if (dropTarget.getAttribute('data-comp') === 'container') {
+                dropTarget.appendChild(draggedElement);
+            } else if (dropTarget.parentElement) {
+                const rect = dropTarget.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY)
+                    dropTarget.parentElement.insertBefore(draggedElement, dropTarget);
+                else
+                    dropTarget.parentElement.insertBefore(draggedElement, dropTarget.nextSibling);
+            }
+
+            bindElementEvents(draggedElement);
+            draggedElement.querySelectorAll('.editable-element').forEach(child => bindElementEvents(child));
+            draggedElement.classList.remove('dragging');
+            draggedElement = null;
+            saveState();
+        });
 
         /* ================================================================
            AUTO-SAVE

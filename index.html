@@ -860,16 +860,16 @@
         let selectedElement = null, activeContainer = null, currentTab = 'edit', lastEditorTab = 'attributes', spacingGuidesVisible = true, currentViewport = '100%', wbIdCounter = 0;
 
         const templates = {
-            container: `<div class="editable-element c-container" data-comp="container"></div>`,
-            title: `<h1 class="editable-element c-title" data-comp="title">Título Customizado</h1>`,
-            paragraph: `<p class="editable-element c-paragraph" data-comp="paragraph">Texto editável livre para parágrafos.</p>`,
-            button: `<button class="editable-element c-button" data-comp="button">Botão</button>`,
-            image: `<img src="https://picsum.photos/id/237/400/250" class="editable-element c-image" data-comp="image" alt="Imagem">`,
-            card: `<div class="editable-element c-card" data-comp="card"><h3>Card Headline</h3><p>Espaço interno do card.</p></div>`,
-            input: `<input type="text" placeholder="Digite aqui..." class="editable-element c-input" data-comp="input">`,
-            alert: `<div class="editable-element c-alert" data-comp="alert">Aviso importante gerado pelo Builder!</div>`,
-            badge: `<span class="editable-element c-badge" data-comp="badge">Tag</span>`,
-            list: `<li class="editable-element c-list" data-comp="list">Item da lista</li>`
+            container: `<div class="editable-element" data-comp="container" style="display:flex;flex-direction:column;gap:15px;padding:20px;min-height:120px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;"></div>`,
+            title: `<h1 class="editable-element" data-comp="title" style="font-size:2rem;font-weight:700;color:#111827;margin:0 0 10px;">Bem-vindo ao Nosso Site</h1>`,
+            paragraph: `<p class="editable-element" data-comp="paragraph" style="font-size:1rem;line-height:1.6;color:#4b5563;margin:0 0 10px;">Uma descrição envolvente que explica o valor do seu produto ou serviço de forma clara e direta.</p>`,
+            button: `<button class="editable-element" data-comp="button" style="background:#3b82f6;color:#fff;padding:12px 24px;border:none;border-radius:6px;font-size:1rem;font-weight:600;cursor:pointer;display:inline-block;">Saiba Mais</button>`,
+            image: `<img class="editable-element" data-comp="image" src="https://placehold.co/800x800" alt="Imagem ilustrativa" style="max-width:100%;height:auto;display:block;border-radius:6px;">`,
+            card: `<div class="editable-element" data-comp="card" style="background:#fff;padding:24px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.1);border:1px solid #e5e7eb;"><h3 style="font-size:1.25rem;font-weight:700;color:#111827;margin:0 0 8px;">Título do Card</h3><p style="font-size:0.9rem;line-height:1.5;color:#6b7280;margin:0;">Descrição detalhada do card com informações relevantes para o visitante.</p></div>`,
+            input: `<input class="editable-element" data-comp="input" type="text" placeholder="Digite seu nome" style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;outline:none;box-sizing:border-box;">`,
+            alert: `<div class="editable-element" data-comp="alert" style="padding:16px;background:#fef2f2;color:#991b1b;border-left:4px solid #ef4444;border-radius:6px;font-size:14px;">Atenção: verifique suas informações antes de continuar.</div>`,
+            badge: `<span class="editable-element" data-comp="badge" style="display:inline-block;padding:4px 12px;background:#e0e7ff;color:#4338ca;border-radius:20px;font-size:12px;font-weight:600;">Novo</span>`,
+            list: `<li class="editable-element" data-comp="list" style="padding:8px 0;color:#374151;font-size:14px;border-bottom:1px solid #f3f4f6;">✅ Item da lista com descrição</li>`
         };
 
         const basicComponentsRegistry = [
@@ -1741,34 +1741,7 @@
             if (guides) guides.remove();
             canvasClone.querySelectorAll('[draggable]').forEach(el => el.removeAttribute('draggable'));
 
-            // Mapeamento de data-comp → CSS da classe
-            const classMap = {
-                container: { sel: '.c-container', css: 'display:flex;flex-direction:column;gap:15px;padding:20px;min-height:auto;border-radius:6px' },
-                title:     { sel: '.c-title',     css: 'font-size:2rem;font-weight:700;margin-bottom:10px;color:#111827' },
-                paragraph: { sel: '.c-paragraph',  css: 'font-size:1rem;line-height:1.5;color:#4b5563;margin-bottom:10px' },
-                button:    { sel: '.c-button',     css: 'background-color:#3b82f6;color:#fff;padding:10px 20px;border:none;border-radius:4px;cursor:pointer;display:inline-block' },
-                image:     { sel: '.c-image',      css: 'max-width:100%;height:auto;display:block;border-radius:4px' },
-                card:      { sel: '.c-card',       css: 'background:#fff;padding:20px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,.05);border:1px solid #e5e7eb;margin-bottom:10px' },
-                input:     { sel: '.c-input',      css: 'width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;margin-bottom:10px' },
-                alert:     { sel: '.c-alert',      css: 'padding:15px;background-color:#fee2e2;color:#991b1b;border-left:4px solid #ef4444;border-radius:4px;margin-bottom:10px' },
-                badge:     { sel: '.c-badge',      css: 'display:inline-block;padding:4px 8px;background:#e0e7ff;color:#4338ca;border-radius:12px;font-size:12px;font-weight:700' },
-                list:      { sel: '.c-list',       css: 'padding-left:20px;margin-bottom:5px' }
-            };
-
-            // 1. Detectar quais classes .c-* são usadas no canvas
-            const usedComps = new Set();
-            origCanvas.querySelectorAll('[data-comp]').forEach(el => {
-                usedComps.add(el.getAttribute('data-comp'));
-            });
-
-            let usedCSS = '';
-            usedComps.forEach(comp => {
-                if (classMap[comp]) {
-                    usedCSS += classMap[comp].sel + '{' + classMap[comp].css + '}\n';
-                }
-            });
-
-            // 2. Custom CSS agrupado por seletor (data-wb-id → classe wb-n)
+            // Custom CSS agrupado por seletor (data-wb-id → classe wb-n)
             let customCSS = '';
             let customIdCounter = 0;
             const idToClass = {};
@@ -1781,7 +1754,6 @@
                     idToClass[wbId] = 'wb-' + (++customIdCounter);
                 }
                 const cls = '.' + idToClass[wbId];
-                // Parse e agrupa regras
                 const lines = wbCss.split('\n');
                 let inMedia = false;
                 let mediaQ = '';
@@ -1806,7 +1778,7 @@
                 });
             });
 
-            // 3. Converter id → classe no clone e limpar atributos do builder
+            // Converter id → classe no clone e limpar atributos do builder
             canvasClone.querySelectorAll('[data-wb-id]').forEach(el => {
                 const wbId = el.getAttribute('data-wb-id');
                 if (idToClass[wbId]) {
@@ -1827,29 +1799,28 @@
                 if (!el.getAttribute('class')) el.removeAttribute('class');
             });
 
-            // 4. Remover style="" vazio
+            // Remover style="" vazio
             canvasClone.querySelectorAll('[style]').forEach(el => {
                 if (!el.getAttribute('style') || !el.getAttribute('style').trim()) {
                     el.removeAttribute('style');
                 }
             });
 
-            // 5. Adicionar loading="lazy" em imagens
+            // Adicionar loading="lazy" em imagens
             canvasClone.querySelectorAll('img').forEach(el => {
                 if (!el.hasAttribute('loading')) el.setAttribute('loading', 'lazy');
             });
 
-            // 6. Montar HTML final minificado
-            const body = canvasClone.innerHTML
-                .replace(/\n\s*\n/g, '\n')
-                .trim();
+            // Montar HTML final
+            const body = canvasClone.innerHTML.trim();
+            const styleBlock = customCSS.trim()
+                ? '\n<style>\n' + customCSS.trim() + '\n</style>\n'
+                : '';
 
-            const allCSS = (usedCSS + (customCSS ? '/*CSS Personalizado*/\n' + customCSS : ''))
-                .replace(/\n{2,}/g, '\n');
-
-            const output = '<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>Página Exportada</title>\n<style>\n' + allCSS + '</style>\n</head>\n<body>\n' + body + '\n</body>\n</html>';
-
-            document.getElementById('code-output').value = output;
+            document.getElementById('code-output').value =
+                '<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>Página Exportada</title>' +
+                styleBlock +
+                '\n</head>\n<body>\n' + body + '\n</body>\n</html>';
         }
 
         function copyCode() {

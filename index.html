@@ -1214,12 +1214,54 @@
 
         const skipAttrs = ['class', 'style', 'data-comp'];
 
+        const VOID_ELEMENTS = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+        const CHANGEABLE_TAGS = ['div','span','p','h1','h2','h3','h4','h5','h6','section','article','nav','aside','header','footer','main','blockquote','figure','figcaption','ul','ol','li','a','button','label','strong','em','small','code','pre','address','details','summary','dialog'];
+
+        function changeElementTag(el, newTag) {
+            const newEl = document.createElement(newTag);
+            el.getAttributeNames().forEach(name => {
+                newEl.setAttribute(name, el.getAttribute(name));
+            });
+            newEl.innerHTML = el.innerHTML;
+            el.parentNode.replaceChild(newEl, el);
+            return newEl;
+        }
+
         function renderAttributesTab(el) {
             const container = document.getElementById('editor-tab-attributes');
             container.innerHTML = '';
 
             const tag = el.tagName;
             const commonAttrs = attrConfigByTag[tag] || attrConfigByTag.default;
+
+            if (!VOID_ELEMENTS.has(tag.toLowerCase())) {
+                const tagRow = document.createElement('div');
+                tagRow.className = 'attr-row';
+                const tagLabel = document.createElement('span');
+                tagLabel.className = 'attr-key';
+                tagLabel.textContent = 'Tag';
+                tagRow.appendChild(tagLabel);
+                const tagSelect = document.createElement('select');
+                CHANGEABLE_TAGS.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    if (t === tag.toLowerCase()) opt.selected = true;
+                    tagSelect.appendChild(opt);
+                });
+                tagSelect.addEventListener('change', () => {
+                    const newTag = tagSelect.value;
+                    if (newTag === tag.toLowerCase()) return;
+                    saveState();
+                    const newEl = changeElementTag(el, newTag);
+                    selectedElement = newEl;
+                    newEl.querySelectorAll('.editable-element').forEach(child => { child._wb_bound = false; });
+                    newEl.querySelectorAll('.editable-element').forEach(child => bindElementEvents(child));
+                    openEditor(newEl);
+                });
+                tagRow.appendChild(tagSelect);
+                container.appendChild(tagRow);
+            }
 
             const existingAttrs = {};
             el.getAttributeNames().forEach(name => { existingAttrs[name] = el.getAttribute(name); });

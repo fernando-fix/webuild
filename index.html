@@ -95,6 +95,7 @@
         }
 
         #canvas {
+            container-type: inline-size;
             overflow-y: auto;
             height: 100%;
             width: 100%;
@@ -365,7 +366,9 @@
             box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
         }
 
-        body.mode-edit .c-container.selected {
+        body.mode-edit [data-comp="container"].selected,
+        body.mode-edit [data-comp="row"].selected,
+        body.mode-edit [data-comp="col"].selected {
             outline: 2px dashed #eab308 !important;
         }
 
@@ -705,7 +708,9 @@
         .css-sub-tab:hover { color: #ccc; }
 
         /* Drag feedback */
-        .c-container.drag-over {
+        [data-comp="container"].drag-over,
+        [data-comp="row"].drag-over,
+        [data-comp="col"].drag-over {
             outline: 2px dashed #10b981 !important;
             outline-offset: 2px;
             background: rgba(16, 185, 129, 0.1) !important;
@@ -860,29 +865,45 @@
         let selectedElement = null, activeContainer = null, currentTab = 'edit', lastEditorTab = 'attributes', spacingGuidesVisible = true, currentViewport = '100%', wbIdCounter = 0;
 
         const templates = {
-            container: `<div class="editable-element" data-comp="container" style="display:flex;flex-direction:column;gap:15px;padding:20px;min-height:120px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;"></div>`,
-            title: `<h1 class="editable-element" data-comp="title" style="font-size:2rem;font-weight:700;color:#111827;margin:0 0 10px;">Bem-vindo ao Nosso Site</h1>`,
-            paragraph: `<p class="editable-element" data-comp="paragraph" style="font-size:1rem;line-height:1.6;color:#4b5563;margin:0 0 10px;">Uma descrição envolvente que explica o valor do seu produto ou serviço de forma clara e direta.</p>`,
-            button: `<button class="editable-element" data-comp="button" style="background:#3b82f6;color:#fff;padding:12px 24px;border:none;border-radius:6px;font-size:1rem;font-weight:600;cursor:pointer;display:inline-block;">Saiba Mais</button>`,
-            image: `<img class="editable-element" data-comp="image" src="https://placehold.co/800x800" alt="Imagem ilustrativa" style="max-width:100%;height:auto;display:block;border-radius:6px;">`,
-            card: `<div class="editable-element" data-comp="card" style="background:#fff;padding:24px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.1);border:1px solid #e5e7eb;"><h3 style="font-size:1.25rem;font-weight:700;color:#111827;margin:0 0 8px;">Título do Card</h3><p style="font-size:0.9rem;line-height:1.5;color:#6b7280;margin:0;">Descrição detalhada do card com informações relevantes para o visitante.</p></div>`,
-            input: `<input class="editable-element" data-comp="input" type="text" placeholder="Digite seu nome" style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;outline:none;box-sizing:border-box;">`,
-            alert: `<div class="editable-element" data-comp="alert" style="padding:16px;background:#fef2f2;color:#991b1b;border-left:4px solid #ef4444;border-radius:6px;font-size:14px;">Atenção: verifique suas informações antes de continuar.</div>`,
-            badge: `<span class="editable-element" data-comp="badge" style="display:inline-block;padding:4px 12px;background:#e0e7ff;color:#4338ca;border-radius:20px;font-size:12px;font-weight:600;">Novo</span>`,
-            list: `<li class="editable-element" data-comp="list" style="padding:8px 0;color:#374151;font-size:14px;border-bottom:1px solid #f3f4f6;">✅ Item da lista com descrição</li>`
+            container: `<section class="editable-element" data-comp="container" aria-label="Seção" style="display:flex;flex-direction:column;gap:clamp(10px,2vw,20px);padding:clamp(16px,3vw,40px);min-height:120px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;"></section>`,
+            title: `<h1 class="editable-element" data-comp="title" style="font-size:clamp(1.5rem,4vw,3rem);font-weight:700;color:#111827;margin:0 0 clamp(8px,1.5vw,20px);">Bem-vindo ao Nosso Site</h1>`,
+            paragraph: `<p class="editable-element" data-comp="paragraph" style="font-size:clamp(0.9rem,2vw,1.125rem);line-height:1.6;color:#4b5563;margin:0 0 10px;">Uma descrição envolvente que explica o valor do seu produto ou serviço de forma clara e direta.</p>`,
+            button: `<button class="editable-element" data-comp="button" aria-label="Botão: Saiba Mais" style="background:#3b82f6;color:#fff;padding:clamp(10px,2vw,16px) clamp(20px,4vw,32px);border:none;border-radius:6px;font-size:clamp(0.875rem,1.5vw,1rem);font-weight:600;cursor:pointer;display:inline-block;width:auto;">Saiba Mais</button>`,
+            image: `<img class="editable-element" data-comp="image" src="https://placehold.co/800x800" alt="" loading="lazy" style="max-width:100%;height:auto;display:block;border-radius:6px;">`,
+            card: `<article class="editable-element" data-comp="card" style="background:#fff;padding:clamp(16px,3vw,32px);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.1);border:1px solid #e5e7eb;"><h3 class="editable-element" style="font-size:clamp(1.1rem,2.5vw,1.5rem);font-weight:700;color:#111827;margin:0 0 clamp(6px,1vw,12px);">Título do Card</h3><p class="editable-element" style="font-size:clamp(0.85rem,1.5vw,1rem);line-height:1.5;color:#6b7280;margin:0;">Descrição detalhada do card com informações relevantes para o visitante.</p></article>`,
+            input: `<input class="editable-element" data-comp="input" type="text" placeholder="Digite seu nome" aria-label="Digite seu nome" style="width:100%;padding:clamp(10px,2vw,14px);border:1px solid #d1d5db;border-radius:6px;font-size:clamp(13px,1.5vw,16px);outline:none;box-sizing:border-box;">`,
+            alert: `<div class="editable-element" data-comp="alert" role="alert" aria-live="polite" style="padding:clamp(12px,2vw,20px);background:#fef2f2;color:#991b1b;border-left:4px solid #ef4444;border-radius:6px;font-size:clamp(13px,1.5vw,16px);">Atenção: verifique suas informações antes de continuar.</div>`,
+            badge: `<span class="editable-element" data-comp="badge" aria-label="Tag: Novo" style="display:inline-block;padding:clamp(3px,0.8vw,6px) clamp(10px,2vw,16px);background:#e0e7ff;color:#4338ca;border-radius:20px;font-size:clamp(11px,1.5vw,14px);font-weight:600;">Novo</span>`,
+            list: `<ul class="editable-element" data-comp="list" role="list" style="padding-left:clamp(16px,3vw,24px);margin:0;display:flex;flex-direction:column;gap:6px;"><li class="editable-element" style="padding:6px 0;color:#374151;font-size:clamp(13px,1.5vw,15px);">Item 1 da lista</li><li class="editable-element" style="padding:6px 0;color:#374151;font-size:clamp(13px,1.5vw,15px);">Item 2 da lista</li></ul>`,
+            nav: `<nav class="editable-element" data-comp="nav" role="navigation" aria-label="Navegação principal" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:clamp(10px,2vw,20px);padding:clamp(12px,2vw,24px) clamp(16px,3vw,40px);background:#fff;border-bottom:1px solid #e5e7eb;"><span class="editable-element" style="font-size:clamp(1.1rem,2vw,1.5rem);font-weight:700;color:#111827;">Logo</span><div style="display:flex;gap:clamp(12px,2vw,24px);flex-wrap:wrap;"><a class="editable-element" href="#" style="color:#4b5563;text-decoration:none;font-size:clamp(0.875rem,1.5vw,1rem);">Início</a><a class="editable-element" href="#" style="color:#4b5563;text-decoration:none;font-size:clamp(0.875rem,1.5vw,1rem);">Sobre</a><a class="editable-element" href="#" style="color:#4b5563;text-decoration:none;font-size:clamp(0.875rem,1.5vw,1rem);">Contato</a></div></nav>`,
+            hero: `<header class="editable-element" data-comp="hero" aria-label="Banner principal" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:clamp(12px,2vw,24px);padding:clamp(32px,8vw,80px) clamp(16px,4vw,48px);background:#f8fafc;min-height:clamp(200px,40vh,500px);"><h1 class="editable-element" style="font-size:clamp(2rem,5vw,4rem);font-weight:800;color:#111827;margin:0;line-height:1.1;">Título Principal</h1><p class="editable-element" style="font-size:clamp(1rem,2.5vw,1.5rem);color:#4b5563;max-width:600px;margin:0;">Subtítulo ou descrição breve do seu produto ou serviço.</p><button class="editable-element" style="background:#3b82f6;color:#fff;padding:clamp(10px,2vw,16px) clamp(24px,4vw,40px);border:none;border-radius:8px;font-size:clamp(0.875rem,1.5vw,1.125rem);font-weight:600;cursor:pointer;">Começar</button></header>`,
+            row: `<div class="editable-element" data-comp="row" style="display:flex;flex-direction:row;flex-wrap:wrap;gap:clamp(16px,3vw,32px);padding:clamp(16px,3vw,40px);min-height:100px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;"><div class="editable-element" data-comp="col" style="flex:1;min-width:260px;padding:16px;background:#f9fafb;border-radius:4px;min-height:60px;border:1px dashed #e5e7eb;">Coluna 1</div><div class="editable-element" data-comp="col" style="flex:1;min-width:260px;padding:16px;background:#f9fafb;border-radius:4px;min-height:60px;border:1px dashed #e5e7eb;">Coluna 2</div></div>`,
+            col: `<div class="editable-element" data-comp="col" style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:clamp(12px,2vw,24px);padding:clamp(12px,2vw,24px);background:#fff;border-radius:8px;border:1px solid #e5e7eb;"></div>`,
+            accordion: `<details class="editable-element" data-comp="accordion" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;"><summary class="editable-element" style="padding:clamp(12px,2vw,20px);background:#f9fafb;font-weight:600;font-size:clamp(0.9rem,1.5vw,1.1rem);color:#111827;cursor:pointer;">Título Expansível</summary><div class="editable-element" style="padding:clamp(12px,2vw,20px);font-size:clamp(0.85rem,1.5vw,1rem);color:#4b5563;">Conteúdo do accordion. Clique no título para expandir/recolher.</div></details>`,
+            blockquote: `<blockquote class="editable-element" data-comp="blockquote" style="margin:0;padding:clamp(16px,3vw,32px) clamp(20px,4vw,48px);background:#f9fafb;border-left:4px solid #3b82f6;border-radius:6px;"><p class="editable-element" style="font-size:clamp(1rem,2.5vw,1.25rem);font-style:italic;color:#374151;margin:0 0 12px;">Citação inspiradora ou depoimento relevante.</p><cite class="editable-element" style="font-size:clamp(0.85rem,1.5vw,1rem);color:#6b7280;font-style:normal;">— Autor da Citação</cite></blockquote>`,
+            figure: `<figure class="editable-element" data-comp="figure" style="margin:0;padding:clamp(12px,2vw,24px);background:#fff;border-radius:8px;border:1px solid #e5e7eb;"><img class="editable-element" src="https://placehold.co/800x500" alt="" loading="lazy" style="max-width:100%;height:auto;display:block;border-radius:6px;"><figcaption class="editable-element" style="margin-top:clamp(8px,1.5vw,16px);font-size:clamp(0.8rem,1.5vw,0.95rem);color:#6b7280;text-align:center;">Legenda da imagem</figcaption></figure>`,
+            separator: `<hr class="editable-element" data-comp="separator" role="separator" style="margin:clamp(16px,3vw,32px) 0;border:none;height:1px;background:linear-gradient(to right,transparent,#d1d5db,transparent);">`
         };
 
         const basicComponentsRegistry = [
-            { type: 'container', name: '📦 Container Box (Div)', category: 'Estrutura' },
+            { type: 'container', name: '📦 Seção (Section)', category: 'Estrutura' },
+            { type: 'row', name: '➡️ Linha (Row)', category: 'Estrutura' },
+            { type: 'col', name: '📐 Coluna (Col)', category: 'Estrutura' },
             { type: 'title', name: '# Título (H1)', category: 'Elementos Básicos' },
             { type: 'paragraph', name: '¶ Parágrafo', category: 'Elementos Básicos' },
             { type: 'button', name: '🔘 Botão', category: 'Elementos Básicos' },
             { type: 'image', name: '🖼️ Imagem', category: 'Elementos Básicos' },
-            { type: 'card', name: '🃏 Card Box', category: 'Elementos Básicos' },
+            { type: 'card', name: '🃏 Card (Article)', category: 'Elementos Básicos' },
             { type: 'input', name: '📥 Campo Input', category: 'Elementos Básicos' },
             { type: 'alert', name: '⚠️ Alerta', category: 'Elementos Básicos' },
             { type: 'badge', name: '🏷️ Badge Tag', category: 'Elementos Básicos' },
-            { type: 'list', name: '🔹 Item Lista', category: 'Elementos Básicos' }
+            { type: 'list', name: '🔹 Lista (UL)', category: 'Elementos Básicos' },
+            { type: 'nav', name: '🧭 Navegação (Nav)', category: 'Componentes' },
+            { type: 'hero', name: '🌟 Hero Banner', category: 'Componentes' },
+            { type: 'accordion', name: '📂 Accordion', category: 'Componentes' },
+            { type: 'blockquote', name: '💬 Citação (Blockquote)', category: 'Componentes' },
+            { type: 'figure', name: '🖼️ Figure + Legenda', category: 'Componentes' },
+            { type: 'separator', name: '➖ Separador (HR)', category: 'Elementos Básicos' }
         ];
 
         function switchTab(tab) {
@@ -954,17 +975,19 @@
         function bindElementEvents(element) {
             element.addEventListener('click', (e) => {
                 if (currentTab !== 'edit') return;
+                if (element.tagName === 'A') e.preventDefault();
                 e.stopPropagation();
                 clearSelection();
                 selectedElement = element;
                 element.classList.add('selected');
 
-                if (element.getAttribute('data-comp') === 'container') {
+                const compType = element.getAttribute('data-comp');
+                if (compType === 'container' || compType === 'row' || compType === 'col') {
                     activeContainer = element;
                     document.getElementById('target-indicator').innerText = "Destino: Dentro do Container";
                     document.getElementById('target-indicator').style.color = "#eab308";
                 } else {
-                    const parentContainer = element.parentElement.closest('.c-container');
+                    const parentContainer = element.parentElement.closest('[data-comp="container"], [data-comp="row"], [data-comp="col"]');
                     activeContainer = parentContainer ? parentContainer : null;
                     document.getElementById('target-indicator').innerText = activeContainer ? "Destino: Dentro do Container" : "Destino: Raiz do Canvas";
                     if (activeContainer) document.getElementById('target-indicator').style.color = "#eab308";
@@ -1207,11 +1230,26 @@
         /* --- ATRIBUTOS TAB --- */
 
         const attrConfigByTag = {
-            IMG: ['src', 'alt', 'width', 'height', 'id', 'title'],
-            INPUT: ['type', 'name', 'value', 'placeholder', 'id', 'title'],
-            BUTTON: ['type', 'name', 'value', 'id', 'title'],
-            A: ['href', 'target', 'id', 'title'],
-            default: ['id', 'title']
+            IMG: ['src', 'alt', 'width', 'height', 'id', 'title', 'loading'],
+            INPUT: ['type', 'name', 'value', 'placeholder', 'id', 'title', 'aria-label'],
+            BUTTON: ['type', 'name', 'value', 'id', 'title', 'aria-label'],
+            A: ['href', 'target', 'id', 'title', 'aria-label', 'rel'],
+            SECTION: ['id', 'title', 'aria-label'],
+            NAV: ['id', 'title', 'aria-label', 'aria-labelledby'],
+            HEADER: ['id', 'title', 'aria-label'],
+            FOOTER: ['id', 'title', 'aria-label'],
+            MAIN: ['id', 'title', 'aria-label'],
+            ASIDE: ['id', 'title', 'aria-label'],
+            ARTICLE: ['id', 'title', 'aria-label'],
+            DETAILS: ['id', 'title', 'open'],
+            SUMMARY: ['id', 'title'],
+            BLOCKQUOTE: ['id', 'title', 'cite'],
+            FIGURE: ['id', 'title'],
+            FIGCAPTION: ['id', 'title'],
+            UL: ['id', 'title', 'aria-label'],
+            OL: ['id', 'title', 'aria-label'],
+            HR: ['id', 'title', 'role'],
+            default: ['id', 'title', 'aria-label', 'role']
         };
 
         const skipAttrs = ['class', 'style', 'data-comp'];
@@ -1568,24 +1606,28 @@
                 if (!wbCss || !wbCss.trim()) return;
                 const id = el.getAttribute('data-wb-id');
                 const selector = '[data-wb-id="' + id + '"]';
-                // If user wrote @media blocks, wrap content; otherwise wrap bare rules
                 const lines = wbCss.split('\n');
-                let outBlock = '';
                 let inMedia = false;
-                let mediaOpen = '';
+                let containerQ = '';
+                let blockRules = '';
                 lines.forEach(line => {
-                    const trimmed = line.trim();
-                    if (trimmed.startsWith('@media')) {
+                    const t = line.trim();
+                    if (t.startsWith('@media')) {
                         inMedia = true;
-                        mediaOpen = trimmed.replace(/\s*\{[\s\S]*/, '');
-                        outBlock += selector + ' ' + trimmed.replace(/\{/, '{\n').replace(/\}[\s]*$/, '') + '}\n';
-                    } else if (trimmed === '}' && inMedia) {
+                        containerQ = '@container ' + t.replace(/^@media\s*/, '').replace(/\s*\{[\s\S]*/, '');
+                    } else if (t === '}' && inMedia) {
                         inMedia = false;
-                    } else if (!inMedia && trimmed) {
-                        outBlock += selector + ' { ' + trimmed + ' }\n';
+                        if (blockRules.trim()) {
+                            css += containerQ + '{\n' + selector + ' { ' + blockRules.trim() + ' }\n}\n';
+                        }
+                        blockRules = '';
+                        containerQ = '';
+                    } else if (inMedia && t && t !== '}') {
+                        blockRules += t;
+                    } else if (!inMedia && t) {
+                        css += selector + ' { ' + t + ' }\n';
                     }
                 });
-                css += outBlock;
             });
             styleEl.textContent = css;
         }
@@ -2057,7 +2099,7 @@
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
 
-            const container = e.target.closest('.editable-element[data-comp="container"]');
+            const container = e.target.closest('.editable-element[data-comp="container"], .editable-element[data-comp="row"], .editable-element[data-comp="col"]');
             if (container !== currentDragOverContainer) {
                 if (currentDragOverContainer) currentDragOverContainer.classList.remove('drag-over');
                 currentDragOverContainer = container;
@@ -2084,7 +2126,8 @@
 
             saveState();
 
-            if (dropTarget.getAttribute('data-comp') === 'container') {
+            const dropComp = dropTarget.getAttribute('data-comp');
+            if (dropComp === 'container' || dropComp === 'row' || dropComp === 'col') {
                 dropTarget.appendChild(draggedElement);
             } else if (dropTarget.parentElement) {
                 const rect = dropTarget.getBoundingClientRect();
